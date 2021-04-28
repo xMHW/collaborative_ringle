@@ -2,11 +2,22 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
 import App from './App';
+import Card from './components/Card'
+
+// import Card from './components/Card2'
 import reportWebVitals from './reportWebVitals';
+import {
+  BrowserRouter as Router,
+  Route,
+  Switch,
+} from 'react-router-dom';
 
 ReactDOM.render(
   <React.StrictMode>
-    <App />
+    <Router>
+      <Route exact path="/Card" component={Card}/>
+      <Route exact path="/App" component={App}/>
+    </Router>
   </React.StrictMode>,
   document.getElementById('root')
 );
