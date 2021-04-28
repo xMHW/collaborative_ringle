@@ -1,5 +1,6 @@
 import React, {useState, useEffect, useRef} from 'react';
 import {Editor, EditorState, convertToRaw} from 'draft-js';
+import {useParams} from "react-router-dom";
 import {ApiHelper} from '../modules/ApiHelper'; 
 
 const Card = () => {
@@ -10,8 +11,9 @@ const Card = () => {
     var now = today.getHours() + ':' + today.getMinutes() + ':' + today.getSeconds();
 
     const [value, setValue] = useState('');
-    const [User, setUser] = useState("Jung");
+    // const [User, setUser] = useState("Jung");
     const [time, setTime] = useState();
+    const { userId } = useParams();
 
     // const onChange = (evt) => setValue(evt.target.value);
     
@@ -29,7 +31,7 @@ const Card = () => {
         const response = await ApiHelper('http://localhost:8082/card', null, 'POST', {
             content: convertToRaw(editorState.getCurrentContent()),
             created: time,
-            updater: User,
+            updater: userId,
           }
         )
         console.log("Saving")
@@ -40,10 +42,9 @@ const Card = () => {
 
     const updateData = async () => {
         const response = await ApiHelper('http://localhost:8082/card', null, 'PUT', {
-            id: User,
             content: convertToRaw(editorState.getCurrentContent()),
             created: time,
-            updater: User,
+            updater: userId,
           }
         )
         console.log("Updating");

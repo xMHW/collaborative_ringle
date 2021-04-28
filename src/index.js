@@ -15,8 +15,7 @@ import {
 ReactDOM.render(
   <React.StrictMode>
     <Router>
-      <Route exact path="/Card" component={Card}/>
-      <Route exact path="/App" component={App}/>
+      <Route exact path="/:userId" component={Card}/>
     </Router>
   </React.StrictMode>,
   document.getElementById('root')
