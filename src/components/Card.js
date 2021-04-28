@@ -14,24 +14,58 @@ const Card = () => {
     // const [User, setUser] = useState("Jung");
     const [time, setTime] = useState();
     const { userId } = useParams();
-
+    const [cardPosition, setCardPostion] = useState(0);
+    const [card, setCard] = useState();
+    const editorRef = useRef();
     // const onChange = (evt) => setValue(evt.target.value);
     
+    const onChange = (editorState) => {
+      setEditorState(editorState);
+    }
+
     useEffect(()=> {
         console.log(convertToRaw(editorState.getCurrentContent()).blocks[0])
         setTime(now);
         console.log(time);
         updateData();
-        //이제 여기에서 전체 card content가 아닌, 델타값만 업데이트 할 수 있도록,,
 
     }, [editorState]);
+    
+    const focusEditor = () => {
+      if(editorRef.current){
+        editorRef.current.focus();
+      }
+    }
 
+    
+    const styleMap = {
+      'HIGHLIGHT': {
+        'backgroundColor': '#faed27',
+      },
+      'RED': {
+        color:'red',
+      }
+    };
+    
+    const getData = async () => {
+      const response = await ApiHelper('http://localhost:8082/card/find', null, 'POST',{
+        cardposition: cardPosition,
+      })
+      console.log(response[0])
+      setCard(response)
+      setEditorState(response.content)
+    }
+    
+    useEffect(() => {
+      getData()
+    }, [])
 
     const createData = async () => {
-        const response = await ApiHelper('http://localhost:8082/card', null, 'POST', {
+        const response = await ApiHelper('http://localhost:8082/card/create', null, 'POST', {
             content: convertToRaw(editorState.getCurrentContent()),
             created: time,
             updater: userId,
+            cardpostion: cardPosition,
           }
         )
         console.log("Saving")
@@ -41,10 +75,10 @@ const Card = () => {
       }
 
     const updateData = async () => {
-        const response = await ApiHelper('http://localhost:8082/card', null, 'PUT', {
+        const response = await ApiHelper('http://localhost:8082/card/update', null, 'POST', {
             content: convertToRaw(editorState.getCurrentContent()),
             created: time,
-            updater: userId,
+            cardposition: cardPosition,
           }
         )
         console.log("Updating");
@@ -55,16 +89,29 @@ const Card = () => {
           console.log(response)
         }
     }  
+    const deleteData = async () => {
+      const response = await ApiHelper('http://localhost:8082/card/delete',null,'POST', {
+        cardposition: cardPosition
+      })
+      console.log(response)
+    }
 
     return (
         <div className = "cards">
-            <Editor editorState={editorState} onChange = {setEditorState}/>
-            
+            <Editor
+          customStyleMap={styleMap}
+          editorState={editorState}
+          onChange={onChange}
+          />
             <br/>
             <div onClick = {createData}> click to save</div>
             <div onClick = {updateData}> click to update</div>
+            <div onClick = {deleteData}> click to delete</div>
         </div>
     );
-}
-
-export default Card;
+  }
+  
+  export default Card;
+  
+  // <Editor editorState={editorState} onChange = {setEditorState}/>
+  // ref={editorRef}
