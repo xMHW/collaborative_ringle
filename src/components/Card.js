@@ -13,7 +13,7 @@ const Card = () => {
     // const [User, setUser] = useState("Jung");
     const [time, setTime] = useState();
     const { userId } = useParams();
-    const [cardPosition, setCardPostion] = useState(0);
+    const [cardPosition, setCardPostion] = useState(1);
     const [card, setCard] = useState();
     const editorRef = useRef();
     // const onChange = (evt) => setValue(evt.target.value);
@@ -135,6 +135,6 @@ const Card = () => {
   // <Editor editorState={editorState} onChange = {setEditorState}/>
   // ref={editorRef}
   // <br/>
-  // <div onClick = {createData}> click to save</div>
   // <div onClick = {updateData}> click to update</div>
+  // <div onClick = {createData}> click to save</div>
   // <div onClick = {deleteData}> click to delete</div>
