@@ -1,5 +1,5 @@
 import React, {useState, useEffect, useRef} from 'react';
-import {Editor, EditorState, convertToRaw} from 'draft-js';
+import {Editor, EditorState, convertToRaw, convertFromRaw, Modifier, selectionState} from 'draft-js';
 import {useParams} from "react-router-dom";
 import {ApiHelper} from '../modules/ApiHelper'; 
 
@@ -27,7 +27,7 @@ const Card = () => {
         console.log(convertToRaw(editorState.getCurrentContent()).blocks[0])
         setTime(now);
         console.log(time);
-        updateData();
+        // updateData();
 
     }, [editorState]);
     
@@ -51,9 +51,13 @@ const Card = () => {
       const response = await ApiHelper('http://localhost:8082/card/find', null, 'POST',{
         cardposition: cardPosition,
       })
-      console.log(response[0])
       setCard(response)
-      setEditorState(response.content)
+      const parsedContent = JSON.parse(response[0].content)
+      // console.log(JSON.parse(response[0].content))
+      // console.log(convertFromRaw(parsedContent))
+      // console.log(response[0].content)
+      const defaultEditorState = EditorState.createWithContent(convertFromRaw(parsedContent))
+      setEditorState(defaultEditorState)
     }
     
     useEffect(() => {
@@ -61,13 +65,32 @@ const Card = () => {
     }, [])
 
     const createData = async () => {
+        const contentState = editorState.getCurrentContent();
+        const raw = convertToRaw(contentState);
+        const rawToString = JSON.stringify(raw);
+        // const contentStateWithEntity = contentState.createEntity('LINK', 'MUTABLE', { url : 'http://www.ringleplus.com',});
+        // const entityKey = contentStateWithEntity.getLastCreatedEntityKey();
+        // console.log(entityKey)
+        // const selectionState = editorState.getSelection();
+        // const contentStateWithLink = Modifier.applyEntity(
+        //   contentStateWithEntity,
+        //   selectionState,
+        //   entityKey,
+        //   );
+        // console.log(convertToRaw(contentStateWithLink))
+        // const newEditorState = EditorState.set(editorState, {currentContent: contentStateWithLink,});
+        // const newState = newEditorState.getCurrentContent()
+
         const response = await ApiHelper('http://localhost:8082/card/create', null, 'POST', {
-            content: convertToRaw(editorState.getCurrentContent()),
+            content: rawToString,
             created: time,
             updater: userId,
-            cardpostion: cardPosition,
+            cardposition: cardPosition,
           }
-        )
+          )
+        // console.log(editorState.getCurrentContent());
+        console.log(convertFromRaw(raw))
+        // console.log(convertToRaw(newEditorState.getCurrentContent()));
         console.log("Saving")
         if (response){
           console.log(response)
@@ -83,7 +106,6 @@ const Card = () => {
         )
         console.log("Updating");
         console.log(time);
-        console.log(convertToRaw(editorState.getCurrentContent()));
 
         if (response){
           console.log(response)
