@@ -1,7 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
-import Card from './components/Card'
+import Card from './components/Card';
+import App from './App';
 
 // import Card from './components/Card2'
 import reportWebVitals from './reportWebVitals';
@@ -14,7 +15,8 @@ import {
 ReactDOM.render(
   <React.StrictMode>
     <Router>
-      <Route exact path="/:userId" component={Card}/>
+      <Route exact path="/test/:userId" component={Card}/>
+      <Route exact path="/app" component={App}/>
     </Router>
   </React.StrictMode>,
   document.getElementById('root')

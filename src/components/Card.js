@@ -8,8 +8,7 @@ const Card = () => {
         EditorState.createEmpty(),
     );
     var today = new Date();
-    var now = today.getHours() + ':' + today.getMinutes() + ':' + today.getSeconds();
-
+    
     const [value, setValue] = useState('');
     // const [User, setUser] = useState("Jung");
     const [time, setTime] = useState();
@@ -22,11 +21,12 @@ const Card = () => {
     const onChange = (editorState) => {
       setEditorState(editorState);
     }
-
+    
     useEffect(()=> {
-        console.log(convertToRaw(editorState.getCurrentContent()).blocks[0])
-        setTime(now);
-        console.log(time);
+      console.log(convertToRaw(editorState.getCurrentContent()).blocks[0])
+      var now = today.getHours() + ':' + today.getMinutes() + ':' + today.getSeconds();
+      setTime(now);
+      console.log(time);
         // updateData();
 
     }, [editorState]);
@@ -58,7 +58,7 @@ const Card = () => {
     }
     
     useEffect(() => {
-      getData()
+      // getData()
     }, [])
 
     const createData = async () => {
@@ -126,10 +126,6 @@ const Card = () => {
           editorState={editorState}
           onChange={onChange}
           />
-            <br/>
-            <div onClick = {createData}> click to save</div>
-            <div onClick = {updateData}> click to update</div>
-            <div onClick = {deleteData}> click to delete</div>
         </div>
     );
   }
@@ -138,3 +134,7 @@ const Card = () => {
   
   // <Editor editorState={editorState} onChange = {setEditorState}/>
   // ref={editorRef}
+  // <br/>
+  // <div onClick = {createData}> click to save</div>
+  // <div onClick = {updateData}> click to update</div>
+  // <div onClick = {deleteData}> click to delete</div>
