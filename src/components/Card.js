@@ -53,9 +53,6 @@ const Card = () => {
       })
       setCard(response)
       const parsedContent = JSON.parse(response[0].content)
-      // console.log(JSON.parse(response[0].content))
-      // console.log(convertFromRaw(parsedContent))
-      // console.log(response[0].content)
       const defaultEditorState = EditorState.createWithContent(convertFromRaw(parsedContent))
       setEditorState(defaultEditorState)
     }
@@ -98,8 +95,11 @@ const Card = () => {
       }
 
     const updateData = async () => {
+        const contentState = editorState.getCurrentContent();
+        const raw = convertToRaw(contentState);
+        const rawToString = JSON.stringify(raw);
         const response = await ApiHelper('http://localhost:8082/card/update', null, 'POST', {
-            content: convertToRaw(editorState.getCurrentContent()),
+            content: rawToString,
             created: time,
             cardposition: cardPosition,
           }
@@ -110,7 +110,8 @@ const Card = () => {
         if (response){
           console.log(response)
         }
-    }  
+    }
+      
     const deleteData = async () => {
       const response = await ApiHelper('http://localhost:8082/card/delete',null,'POST', {
         cardposition: cardPosition

@@ -4,88 +4,140 @@ import './App.css';
 import {ApiHelper} from './modules/ApiHelper.js' 
 
 const App = () => {
-  // const { userId } = useParams();
-  // const body = body
-  // const method = method
-  const [Text, setText] = useState("");
-  const [Hello, setHello] = useState("");
-  const [User, setUser] = useState("Jung");
-  const thisRef = useRef("");
-  const handleUserKeyPress = (e) => {
-    //console.log(e.key)
-    setText(e.key)
+  const [tree, setTree] = useState([]);
+  const [currentId, setCurrentId] = useState(null);
+  const [treeState, setTreeState] = useState([]);
+
+
+
+  //아무런 정보가 없을 때, 트리/카드 하나 생성하도록?
+  const createTree = async () => {
+    const response = await ApiHelper('http://localhost:8082/tree/create', null, 'POST'), {
+      cards: [],
+      page: page,
+    }
+    return [];
   }
 
-  const value = {
-    name: User,
-    content: thisRef.current.textContent
-  }
-  const testPost = async () => {
-    const response = await ApiHelper(
-      'http://localhost:8082/product/find/all'
-    )
+  //트리 데이터 서버를 통해 받아오기
+  const getTree = async () => {
+    const response = await ApiHelper('http://localhost:8082/tree/find/all', null, 'POST',{
+      page: page,
+    })
+    //Tree를 어떤 방식으로 저장하게 되는가?
+    const defaultTree = response.cards
+
+    //Tree 존재하면, 받아오고, 없으면 생성
     if (response){
-      console.log(response)
-      setHello(JSON.stringify(response))
+      setTreeState(defaultTree);
+    }else{
+      setTreeState(createTree());
     }
   }
 
-  const creating = async () => {
-    const response = await ApiHelper('http://localhost:8082/product', null, 'POST',
-      value
-    )
-    console.log("Saved!")
-    if (response){
-      console.log(response)
-    }
+  const updateTree = async () => {
+    //page와 cards 받아오기
+    
+    const response = await ApiHelper('http://localhost:8082/tree/update', null, 'POST', {
+      page: page,
+      cards: cards,
+    })
   }
 
-  const updating = async () => {
-    const response = await ApiHelper('http://localhost:8082/product', null, 'PUT',
-    value
-    )
-    console.log("Updated")
-  }
-
-  const removing = async () => {
-    const response = await ApiHelper(
-      'http://localhost:8082/product/remove', null, 'POST', 
-      {
-        name: User
-      }
-    )
-    console.log("Removed")
-  }
-
-  const printRef = () => {
-    console.log(thisRef.current.textContent)
-  }
-
-  useEffect(() => {
-    let id = window.addEventListener('keydown', handleUserKeyPress)
-    return () => {
-      window.removeEventListener('keydown', handleUserKeyPress)
-    }
-  }, [Text])
-
-  useEffect(() => {
+  useEffect(( ) => {
+    getTree()
     
   }, [])
 
-  return <>
-  <span>hello</span>
-  <br></br>
-  <span>{Hello}</span>
-  <div className ="btn" onClick = {evt => testPost()}> Test Fetch </div>
-  
-  <div className = "superFancyBlockQuote" ref = {thisRef} contentEditable = {true} placeholder = "write">
-    </div>
 
-  <div onClick = {printRef}>  Print Typed Content</div>
-  <div onClick = {creating}>  Save Ref</div>
-  <div onClick = {updating}>  Update Ref</div>
-  <div onClick = {removing}>  Remove Ref</div>
+  return <>
+  <div style = {{padding:16, width:1100, backgroundColor: 'white', maxWidth:1100, borderRadius:8, display: 'inline-block'}}>
+    {
+      tree.map((obj) => <Card key = {obj.id}
+      initContentState = {obj.initContentState}
+      uuid = {obj.id}
+      currentId = {currentId}
+      createNewCard={add} 
+      findPrevCard={findPrevCard}
+      findNextCard={findNextCard}
+      updateId={updateId}
+      updateData={updateData}
+      />)
+    }
+  </div>
+  
+
   </>
 }
 
 export default App;
+
+/* <div className = "superFancyBlockQuote" ref = {thisRef} contentEditable = {true} placeholder = "write">
+    
+    </div> */
+
+// <div onClick = {printRef}>  Print Typed Content</div>
+// <div onClick = {creating}>  Save Ref</div>
+// <div onClick = {updating}>  Update Ref</div>
+// <div onClick = {removing}>  Remove Ref</div>
+
+// const value = {
+  //   name: User,
+  //   content: thisRef.current.textContent
+  // }
+  // const testPost = async () => {
+  //   const response = await ApiHelper(
+  //     'http://localhost:8082/product/find/all'
+  //   )
+  //   if (response){
+  //     console.log(response)
+  //     setHello(JSON.stringify(response))
+  //   }
+  // }
+
+  // const creating = async () => {
+  //   const response = await ApiHelper('http://localhost:8082/product', null, 'POST',
+  //     value
+  //   )
+  //   console.log("Saved!")
+  //   if (response){
+  //     console.log(response)
+  //   }
+  // }
+
+  // const updating = async () => {
+  //   const response = await ApiHelper('http://localhost:8082/product', null, 'PUT',
+  //   value
+  //   )
+  //   console.log("Updated")
+  // }
+
+  // const removing = async () => {
+  //   const response = await ApiHelper(
+  //     'http://localhost:8082/product/remove', null, 'POST', 
+  //     {
+  //       name: User
+  //     }
+  //   )
+  //   console.log("Removed")
+  // }
+
+  // const printRef = () => {
+  //   console.log(thisRef.current.textContent)
+  // }
+
+  // useEffect(() => {
+  //   let id = window.addEventListener('keydown', handleUserKeyPress)
+  //   return () => {
+  //     window.removeEventListener('keydown', handleUserKeyPress)
+  //   }
+  // }, [Text])
+
+  // useEffect(() => {
+    
+  // }, [])
+
+    // const handleUserKeyPress = (e) => {
+  //   //console.log(e.key)
+  //   setText(e.key)
+  // }
