@@ -3,11 +3,24 @@ import './App.css';
 // import {useParams} from "react-router-dom";
 import {ApiHelper} from './modules/ApiHelper.js';
 import Card from './components/Card.js';
+import {useParams} from "react-router-dom";
+
 
 const App = () => {
   const [tree, setTree] = useState([]);
   const [currentCard, setCurrentCard] = useState(null);
   const [locRefs, setlocRefs] = useState([]);
+  const {userId} = useParams();
+
+  useEffect(( ) => {
+    getTree()
+  }, [])
+
+  // useEffect(( ) => {
+  //   getTree()
+  // }, [tree])
+
+
 
 
   const createLoc = async () => {
@@ -23,44 +36,90 @@ const App = () => {
     })
   }
 
-  //트리 데이터 서버를 통해 받아오기
+  //트리 데이터 서버를 통해 받아오기, tree데이터는 uuid만 어레이로 저장
   const getTree = async () => {
     const response = await ApiHelper('http://localhost:8082/tree/find/all', null, 'GET', null)
-    //Tree를 어떤 방식으로 저장하게 되는가?
-    // const defaultTree = response.cards
-    setTree(response)
-
-    //Tree 존재하면, 받아오고, 없으면 생성
-    // if (response){
-    //   setTreeState(defaultTree);
-    // }else{
-    //   setTreeState(createTree(0));
-    // }
+    console.log(response)
+    setTree(response[0].cards)
+    console.log(tree)
   }
 
-  const updateTree = async (page) => {
+
+  const updateTree = async (page, tree) => {
     //page와 cards 받아오기
-    
     const response = await ApiHelper('http://localhost:8082/tree/update', null, 'POST', {
       page: page,
       cards: tree,
     })
+    console.log("updating tree")
     console.log(response)
   }
 
-  useEffect(( ) => {
-    getTree()
-  }, [])
-
   console.log(tree)
+
+  const findPrevCard = (uuid, actionType) => {
+    const index = tree.indexOf(uuid)
+    if (index === -1){
+      return
+    }
+    if (index === 0){
+      return
+    }
+    //본 카드 위에있는 카드의 uuid가져오기
+    setCurrentCard(tree[index-1]);
+
+    if(actionType === "delete"){
+      const copied = [...tree]
+      copied.splice(index, 1);
+      setTree(copied);
+      //tree 업데이트 됬음을 알려서 -> !!!!!!!!!!!!!!!!!!
+    }
+  }
+
+  const findNextCard = (uuid) => {
+    const index = tree.indexOf(uuid)
+    if (index === -1){
+      return
+    }
+    if (!tree[index+1]){
+      return
+    }
+    //본 카드 다음에 있는 카드의 uuid 가져오기
+    setCurrentCard(tree[index + 1]);
+  }
+
+  const createdCard = (createdId) => {
+    const index = tree.indexOf(currentCard);
+    let newTree
+    if(index === -1){
+      newTree = [
+        ...tree, createdId
+      ]
+      setTree(newTree)
+    }else{
+      const copiedTree = [...tree]
+      copiedTree.splice(index + 1, 0, 
+        createdId
+      );
+      newTree= copiedTree;
+      setTree(newTree);
+    }
+    updateTree(1, tree)
+    //트리가 업데이트 되었다는 것을 알려줘야 함!!!!!!!!!
+  }
+  
+
 
   return <>
   <div style = {{padding:16, width:1100, backgroundColor: 'white', maxWidth:1100, borderRadius:8, display: 'inline-block'}}>
     {
-      tree.map((obj) => <Card key = {obj.id}
-      initContentState = {obj.initContentState}
-      uuid = {obj.id}
+      tree.map((id) => <Card key={id}
+      // initContentState = {obj.initContentState}
+      uuid = {id}
       currentCard = {currentCard}
+      findPrevCard = {findPrevCard}
+      findNextCard = {findNextCard}
+      createdNewCard = {createdCard}
     />)
     }
     </div>
@@ -84,64 +143,3 @@ export default App;
 // <div onClick = {creating}>  Save Ref</div>
 // <div onClick = {updating}>  Update Ref</div>
 // <div onClick = {removing}>  Remove Ref</div>
-
-// const value = {
-  //   name: User,
-  //   content: thisRef.current.textContent
-  // }
-  // const testPost = async () => {
-  //   const response = await ApiHelper(
-  //     'http://localhost:8082/product/find/all'
-  //   )
-  //   if (response){
-  //     console.log(response)
-  //     setHello(JSON.stringify(response))
-  //   }
-  // }
-
-  // const creating = async () => {
-  //   const response = await ApiHelper('http://localhost:8082/product', null, 'POST',
-  //     value
-  //   )
-  //   console.log("Saved!")
-  //   if (response){
-  //     console.log(response)
-  //   }
-  // }
-
-  // const updating = async () => {
-  //   const response = await ApiHelper('http://localhost:8082/product', null, 'PUT',
-  //   value
-  //   )
-  //   console.log("Updated")
-  // }
-
-  // const removing = async () => {
-  //   const response = await ApiHelper(
-  //     'http://localhost:8082/product/remove', null, 'POST', 
-  //     {
-  //       name: User
-  //     }
-  //   )
-  //   console.log("Removed")
-  // }
-
-  // const printRef = () => {
-  //   console.log(thisRef.current.textContent)
-  // }
-
-  // useEffect(() => {
-  //   let id = window.addEventListener('keydown', handleUserKeyPress)
-  //   return () => {
-  //     window.removeEventListener('keydown', handleUserKeyPress)
-  //   }
-  // }, [Text])
-
-  // useEffect(() => {
-    
-  // }, [])
-
-    // const handleUserKeyPress = (e) => {
-  //   //console.log(e.key)
-  //   setText(e.key)
-  // }
