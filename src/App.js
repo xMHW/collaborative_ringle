@@ -55,7 +55,7 @@ const App = () => {
     console.log(response)
   }
 
-  console.log(tree)
+  // console.log(tree)
 
   const findPrevCard = (uuid, actionType) => {
     const index = tree.indexOf(uuid)
@@ -90,7 +90,7 @@ const App = () => {
 
   const createdCard = (createdId) => {
     const index = tree.indexOf(currentCard);
-    let newTree
+    let newTree = []
     if(index === -1){
       newTree = [
         ...tree, createdId
@@ -104,7 +104,7 @@ const App = () => {
       newTree= copiedTree;
       setTree(newTree);
     }
-    updateTree(1, tree)
+    updateTree(1, newTree);
     //트리가 업데이트 되었다는 것을 알려줘야 함!!!!!!!!!
   }
   
@@ -120,6 +120,7 @@ const App = () => {
       findPrevCard = {findPrevCard}
       findNextCard = {findNextCard}
       createdNewCard = {createdCard}
+      setCurrentCard = {setCurrentCard}
     />)
     }
     </div>

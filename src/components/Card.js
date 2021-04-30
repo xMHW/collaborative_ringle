@@ -3,7 +3,7 @@ import {Editor, EditorState, convertToRaw, convertFromRaw, Modifier, selectionSt
 import {useParams} from "react-router-dom";
 import {ApiHelper} from '../modules/ApiHelper'; 
 
-const Card = ({uuid, currentCard, findPrevCard, findNextCard, createdNewCard}) => {
+const Card = ({uuid, currentCard, findPrevCard, findNextCard, createdNewCard, setCurrentCard}) => {
     const [editorState, setEditorState] = useState(() => 
         EditorState.createEmpty(),
     );
@@ -18,6 +18,7 @@ const Card = ({uuid, currentCard, findPrevCard, findNextCard, createdNewCard}) =
     const onChange = (editorState) => {
       setEditorState(editorState);
       updateData(uuid)
+      setCurrentCard(uuid)
     }
     
     useEffect(()=> {
@@ -42,8 +43,8 @@ const Card = ({uuid, currentCard, findPrevCard, findNextCard, createdNewCard}) =
       console.log(response)
       setCard(response)
       if (response){
-        console.log(response[0].content)
-        const parsedContent = JSON.parse(response[0].content)
+        console.log(response.content)
+        const parsedContent = JSON.parse(response.content)
         const defaultEditorState = EditorState.createWithContent(convertFromRaw(parsedContent))
         setEditorState(defaultEditorState)  
       }else{
@@ -172,9 +173,9 @@ const Card = ({uuid, currentCard, findPrevCard, findNextCard, createdNewCard}) =
     }
     
     //카드 데이터셋 삭제
-    const deleteData = async (uuid) => {
+    const deleteData = async () => {
       const response = await ApiHelper('http://localhost:8082/card/delete',null,'POST', {
-        id: uuid,
+        _id: uuid,
       })
       console.log(response)
     }
@@ -192,9 +193,9 @@ const Card = ({uuid, currentCard, findPrevCard, findNextCard, createdNewCard}) =
   }
   export default Card;
   
+  // <div onClick = {createData}> click to save</div>
   // <Editor editorState={editorState} onChange = {setEditorState}/>
   // ref={editorRef}
   // <br/>
   // <div onClick = {updateData}> click to update</div>
-  // <div onClick = {createData}> click to save</div>
   // <div onClick = {deleteData}> click to delete</div>
