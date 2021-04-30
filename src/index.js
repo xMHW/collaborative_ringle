@@ -16,7 +16,7 @@ ReactDOM.render(
   <React.StrictMode>
     <Router>
       <Route exact path="/test/:userId" component={Card}/>
-      <Route exact path="/app" component={App}/>
+      <Route exact path="/app/:userID" component={App}/>
     </Router>
   </React.StrictMode>,
   document.getElementById('root')

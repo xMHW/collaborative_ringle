@@ -1,14 +1,16 @@
 import React, {useEffect, useRef, useState} from 'react';
 import './App.css';
-// import {useParams} from "react-router-dom";
+import {useParams} from "react-router-dom";
 import {ApiHelper} from './modules/ApiHelper.js';
 import Card from './components/Card.js';
+import useDidMountEffect from './hooks/useDidMountEffect.js';
 
 const App = () => {
   const [tree, setTree] = useState([]);
   const [currentCard, setCurrentCard] = useState(null);
+  const [load, setLoad] = useState(false);
   const [locRefs, setlocRefs] = useState([]);
-
+  const { userId } = useParams();
 
   const createLoc = async () => {
     const response = await ApiHelper('http://localhost:8082/loc/create', null, 'POST', {
@@ -22,46 +24,49 @@ const App = () => {
       cards: [],
     })
   }
-
+  
   //트리 데이터 서버를 통해 받아오기
   const getTree = async () => {
     const response = await ApiHelper('http://localhost:8082/tree/find/all', null, 'GET', null)
     //Tree를 어떤 방식으로 저장하게 되는가?
     // const defaultTree = response.cards
-    setTree(response)
-
+    setTree(response[0].cards)
+    setLoad(true)
+    
     //Tree 존재하면, 받아오고, 없으면 생성
     // if (response){
-    //   setTreeState(defaultTree);
-    // }else{
-    //   setTreeState(createTree(0));
-    // }
+      //   setTreeState(defaultTree);
+      // }else{
+        //   setTreeState(createTree(0));
+        // }
   }
-
+      
   const updateTree = async (page) => {
     //page와 cards 받아오기
     
     const response = await ApiHelper('http://localhost:8082/tree/update', null, 'POST', {
       page: page,
-      cards: tree,
+      cards: ["608b3f2157e25818a1d3ff16","608b3f3557e25818a1d3ff17"],
     })
     console.log(response)
   }
 
   useEffect(( ) => {
-    getTree()
+    getTree();
   }, [])
-
-  console.log(tree)
+  
+  useDidMountEffect(() => {
+    console.log(tree);
+  }, [load])
 
   return <>
   <div style = {{padding:16, width:1100, backgroundColor: 'white', maxWidth:1100, borderRadius:8, display: 'inline-block'}}>
     {
-      tree.map((obj) => <Card key = {obj.id}
-      initContentState = {obj.initContentState}
-      uuid = {obj.id}
+      tree.map((id) => <Card
+      uuid = {id}
       currentCard = {currentCard}
-    />)
+      userId = {userId}
+      />)
     }
     </div>
     
@@ -75,6 +80,7 @@ export default App;
 // findNextCard={findNextCard}
 // updateId={updateId}
 // updateData={updateData}
+// initContentState = {obj.initContentState}
 
 /* <div className = "superFancyBlockQuote" ref = {thisRef} contentEditable = {true} placeholder = "write">
     
