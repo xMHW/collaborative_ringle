@@ -23,7 +23,8 @@ const Card = ({
     // const [uuid, setUuid] = useState(uuid); //현재 커서가 있는 카드의 uuid, 엔터 클릭시 생성된 카드의 uuid
     const [hasEnded, setHasEnded] = useState(false); // 커서의 위치가 끝이면, 변경됨을 알려줌
     const cursorRef = useRef();
-    
+    const DEFAULT_URL = "http://54.180.147.138"
+
     const onChange = (editState) => {
       setEditorState(editState);
       // updateData(uuid);
@@ -63,11 +64,6 @@ const Card = ({
     
     useDidMountEffect(() => {
       if(currentCard == uuid) {
-        // if(cardCreated) {
-        //   cursorRef.current.focus();
-        //   setEditorState(default_editor_state);
-        //   setCardCreated(false);
-        // }
         if(cursorRef.current){
           cursorRef.current.focus();
           // console.log(editorState.getSelection().getHasFocus());
@@ -117,10 +113,9 @@ const Card = ({
       if(cardCreated) return;
       getData(uuid);
     }, [])
-    
-
+  
     const getData = async (uuid) => {
-      const response = await ApiHelper('http://54.180.147.138/card/find', null, 'POST',{
+      const response = await ApiHelper(`${DEFAULT_URL}/card/find`, null, 'POST',{
         _id: uuid,
       })
       // console.log(uuid)
@@ -215,6 +210,23 @@ const Card = ({
         console.log("arrow down")
         return
       }
+      if (evt.key === "ArrowLeft"){
+        const contentState = editorState.getCurrentContent();
+        const focusPosition = editorState.getSelection().getFocusOffset();
+        if (focusPosition === 0){
+          console.log("Arrow left");
+          findPrevCard(uuid);
+        }
+      }
+      if (evt.key === "ArrowRight"){
+        const contentState = editorState.getCurrentContent();
+        const focusPosition = editorState.getSelection().getFocusOffset();
+        const contentLength = contentState.getPlainText().length;
+        if (focusPosition === contentLength){
+          console.log("Arrow right");
+          findNextCard(uuid);
+        }
+      }
       //탭을 눌렀을 때 -> 탭만 vs 쉬프트_탭
       if (evt.key === "Tab"){
         // setCurrentCard()
@@ -258,7 +270,7 @@ const Card = ({
       const newCardContentState = newCardEditorState.getCurrentContent();
       const newCardRaw = convertToRaw(newCardContentState);
       const newCardRawToString = JSON.stringify(newCardRaw);
-      const response = await ApiHelper('http://54.180.147.138/card/create', null, 'POST', {
+      const response = await ApiHelper(`${DEFAULT_URL}/card/create`, null, 'POST', {
         content: newCardRawToString, //엔터를 누르는 곳 뒤에 텍스트가 있다면, 
         created: time,
         updater: userId,
@@ -276,7 +288,7 @@ const Card = ({
         const contentState = editorState.getCurrentContent();
         const raw = convertToRaw(contentState);
         const rawToString = JSON.stringify(raw);
-        const response = await ApiHelper('http://54.180.147.138/card/create', null, 'POST', {
+        const response = await ApiHelper(`${DEFAULT_URL}/card/create`, null, 'POST', {
             content: rawToString,
             created: time,
             updater: userId,
@@ -298,7 +310,7 @@ const Card = ({
         // console.log(contentState.getPlainText());
         const raw = convertToRaw(contentState);
         const rawToString = JSON.stringify(raw);
-        const response = await ApiHelper('http://54.180.147.138/card/update', null, 'POST', {
+        const response = await ApiHelper(`${DEFAULT_URL}/card/update`, null, 'POST', {
             _id: uuid,
             content: rawToString,
             created: time,
@@ -314,7 +326,7 @@ const Card = ({
     
     //카드 데이터셋 삭제
     const deleteData = async () => {
-      const response = await ApiHelper('http://54.180.147.138/card/delete',null,'POST', {
+      const response = await ApiHelper(`${DEFAULT_URL}/card/delete`,null,'POST', {
         _id: uuid,
       })
       console.log(response)
@@ -352,14 +364,11 @@ const Card = ({
 
     return (
         <div className = "cards" onKeyDown={onKeyDown}>
-          {uuid}
-          
           <Editor
           editorState={editorState}
           onChange={onChange}
           ref={cursorRef}
         />
-        <p>{editorState.getCurrentContent().getPlainText()}</p>
         </div>
     );
   }
