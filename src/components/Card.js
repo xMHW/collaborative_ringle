@@ -1,16 +1,16 @@
 import React, {useState, useEffect, useRef} from 'react';
-import {Editor, EditorState, convertToRaw, convertFromRaw, Modifier, selectionState, ContentBlock, ContentState, genKey} from 'draft-js';
+import {Editor, EditorState, convertToRaw, convertFromRaw, Modifier, SelectionState, ContentBlock, ContentState, genKey} from 'draft-js';
 import {useParams} from "react-router-dom";
 import {ApiHelper} from '../modules/ApiHelper'; 
 import useDidMountEffect from '../modules/usedidmounteffect';
 
-
+let EditorStates = [];
 // let editorStateHistory = [];
 
 const Card = ({
   uuid, currentCard, findPrevCard, findNextCard, createdNewCardAtTree,
    setCurrentCard, deleteCurrentCardFromTree, setBackSpace, backSpace,
-   mergePending, setMergePending,
+   mergePending, setMergePending, cardCreated, setCardCreated, goUp, setGoUp,
 }) => {
     const [editorState, setEditorState] = useState(() => 
         EditorState.createEmpty(),
@@ -23,10 +23,9 @@ const Card = ({
     // const [uuid, setUuid] = useState(uuid); //현재 커서가 있는 카드의 uuid, 엔터 클릭시 생성된 카드의 uuid
     const [hasEnded, setHasEnded] = useState(false); // 커서의 위치가 끝이면, 변경됨을 알려줌
     const cursorRef = useRef();
-    const [oldEditorState, setOldEditorState] = useState();
     
-    const onChange = (editorState) => {
-      setEditorState(editorState);
+    const onChange = (editState) => {
+      setEditorState(editState);
       // updateData(uuid);
       setCurrentCard(uuid);
       // addHistory(editorState);
@@ -48,6 +47,10 @@ const Card = ({
       var now = today.getHours() + ':' + today.getMinutes() + ':' + today.getSeconds();
       setTime(now);
       updateData(uuid);
+      console.log(editorState.getSelection(), uuid);
+      // console.log(editorState.getSelection().getHasFocus());
+      // EditorStates.push(editorState);
+      // console.log(EditorStates);
 
       // console.log('uuid...');
       // console.log(uuid);
@@ -57,62 +60,67 @@ const Card = ({
     const checkDifference = () => {
 
     }
-
-    useEffect(() => {
+    
+    useDidMountEffect(() => {
       if(currentCard == uuid) {
+        // if(cardCreated) {
+        //   cursorRef.current.focus();
+        //   setEditorState(default_editor_state);
+        //   setCardCreated(false);
+        // }
         if(cursorRef.current){
           cursorRef.current.focus();
-          // console.log('current card chang??');
+          // console.log(editorState.getSelection().getHasFocus());
+          if(cardCreated) {
+            const contentState = editorState.getCurrentContent();
+            const selectionState = editorState.getSelection();
+            const length = contentState.getPlainText().length;
+            const mergedSelectionState = selectionState.merge({
+              focusOffset: length,
+              anchorOffset: length,
+              hasFocus: true,
+            });
+            setEditorState(EditorState.acceptSelection(editorState, mergedSelectionState));
+            setCardCreated(false);
+          }
           if(backSpace){
-            // console.log("focus to end");
             setEditorState(EditorState.moveFocusToEnd(editorState));
             if(mergePending){
-              // console.log("now merging!");
-              // console.log('pended..!!');
-              // console.log(uuid);
               const contentState = editorState.getCurrentContent();
+              const selectionState = editorState.getSelection();
+              const focusKey = selectionState.getFocusKey();
               const length = contentState.getPlainText().length;
-              // console.log('before');
-              // console.log(contentState.getPlainText());
-
               const mergedContentState = mergeBlockToContentState(contentState, mergePending);
-              
-              const mergedEditorState = EditorState.createWithContent(mergedContentState);
-
               const newCardRaw = convertToRaw(mergedContentState);
-              // console.log('000000000')
-              // console.log(newCardRaw);
-              // const newCardRawToString = JSON.stringify(newCardRaw);
-
               const mergedEditorState2 = EditorState.createWithContent(convertFromRaw(newCardRaw))
-
-
-
-              // console.log('after');
-              // console.log(mergedEditorState.getCurrentContent().getPlainText());
-
-              // const mergedEditorState= EditorState.createEmpty();
-
-              setEditorState(mergedEditorState2);
-              // cursorRef.current.focus();
-              // setEditorState(EditorState.moveFocusToEnd(editorState));
+              const mergedSelectionState = selectionState.merge({
+                focusKey: focusKey,
+                focusOffset: length,
+                anchorOffset: length,
+                hasFocus: true,
+              })
+              setEditorState(EditorState.acceptSelection(mergedEditorState2, mergedSelectionState));
               setMergePending(null);
-
-              // getData(uuid);
             }
             setBackSpace(false);
-            console.log(backSpace);
+          }
+          if(goUp){
+            setEditorState(EditorState.moveFocusToEnd(editorState));
+            setGoUp(false);
           }
         }
       }
     },[currentCard])
+
+
     useEffect(() => {
-      getData(uuid)
+      if(cardCreated) return;
+      getData(uuid);
     }, [])
     
 
     const getData = async (uuid) => {
-      const response = await ApiHelper('http://localhost:8082/card/find', null, 'POST',{
+      const response = await ApiHelper('http://54.180.147.138/card/find', null, 'POST',{
         _id: uuid,
       })
       // console.log(uuid)
@@ -176,7 +184,7 @@ const Card = ({
         const contentState = editorState.getCurrentContent();
         const contentLength = contentState.getPlainText().length;
         const selectionState = editorState.getSelection();
-        const start = selectionState.getStartOffset();
+        const start = selectionState.getFocusOffset();
         const mergeBlockMap = contentState.getBlockMap();
         const mergeBlock = contentState.getFirstBlock();
         if (start === 0) {
@@ -209,18 +217,27 @@ const Card = ({
       //엔터를 눌렀을 때
       if (evt.keyCode === 13){
         //새로운 카드를 생성해야함
-        //엔터시 다음 줄로는 넘어가지 않도록 막아야함..쉬프트 엔터는 또 다르게,,
         //먼저 하나의 카드에 다음 줄로 넘어가는 것을 롤백해야함.
-        setEditorState(EditorState.undo(editorState));
         const contentState = editorState.getCurrentContent();
-        const selectionState = editorState.getSelection();
-        const splitedBlocks = Modifier.splitBlock(contentState, selectionState);
-        const modifiedContentState = ContentState.createFromBlockArray([splitedBlocks.getFirstBlock()]);
-        const modifiedEditorState = EditorState.createWithContent(modifiedContentState);
-        setEditorState(modifiedEditorState);
-        const newContentState = ContentState.createFromBlockArray([splitedBlocks.getLastBlock()]);
-        const newEditorState = EditorState.createWithContent(newContentState);
-        newCard(newEditorState);
+        const focusPosition = editorState.getSelection().getFocusOffset();
+        const contentLength = contentState.getPlainText().length;
+        if(focusPosition == contentLength){
+          console.log("newCard!!!!!!")
+          setCardCreated(true);
+          newCard();
+          // setEditorState(EditorState.undo(editorState));
+        }
+        else{
+          setEditorState(EditorState.undo(editorState));
+          const selectionState = editorState.getSelection();
+          const splitedBlocks = Modifier.splitBlock(contentState, selectionState);
+          const modifiedContentState = ContentState.createFromBlockArray([splitedBlocks.getFirstBlock()]);
+          const modifiedEditorState = EditorState.createWithContent(modifiedContentState);
+          setEditorState(modifiedEditorState);
+          const newContentState = ContentState.createFromBlockArray([splitedBlocks.getLastBlock()]);
+          const newEditorState = EditorState.createWithContent(newContentState);
+          newCard(newEditorState);
+        }
         // setEditorState(editorStateHistory[1]);
         //커서 위치도 옯겨가야함!
       }
@@ -232,7 +249,7 @@ const Card = ({
       const newCardContentState = newCardEditorState.getCurrentContent();
       const newCardRaw = convertToRaw(newCardContentState);
       const newCardRawToString = JSON.stringify(newCardRaw);
-      const response = await ApiHelper('http://localhost:8082/card/create', null, 'POST', {
+      const response = await ApiHelper('http://54.180.147.138/card/create', null, 'POST', {
         content: newCardRawToString, //엔터를 누르는 곳 뒤에 텍스트가 있다면, 
         created: time,
         updater: userId,
@@ -242,7 +259,7 @@ const Card = ({
       //새로운 카드의 id 로 uuid 업데이트
       createdNewCardAtTree(response._id);
       setCurrentCard(response._id);
-      console.log(response._id)
+      // console.log(response._id)
     }
 
     //카드 데이터 셋 생성
@@ -250,7 +267,7 @@ const Card = ({
         const contentState = editorState.getCurrentContent();
         const raw = convertToRaw(contentState);
         const rawToString = JSON.stringify(raw);
-        const response = await ApiHelper('http://localhost:8082/card/create', null, 'POST', {
+        const response = await ApiHelper('http://54.180.147.138/card/create', null, 'POST', {
             content: rawToString,
             created: time,
             updater: userId,
@@ -272,7 +289,7 @@ const Card = ({
         // console.log(contentState.getPlainText());
         const raw = convertToRaw(contentState);
         const rawToString = JSON.stringify(raw);
-        const response = await ApiHelper('http://localhost:8082/card/update', null, 'POST', {
+        const response = await ApiHelper('http://54.180.147.138/card/update', null, 'POST', {
             _id: uuid,
             content: rawToString,
             created: time,
@@ -288,7 +305,7 @@ const Card = ({
     
     //카드 데이터셋 삭제
     const deleteData = async () => {
-      const response = await ApiHelper('http://localhost:8082/card/delete',null,'POST', {
+      const response = await ApiHelper('http://54.180.147.138/card/delete',null,'POST', {
         _id: uuid,
       })
       console.log(response)
@@ -329,6 +346,15 @@ const Card = ({
       });
       return newBlock
     }
+
+    // const selectionInitializedEditorState = () => {
+    //   const newSelectionState = new SelectionState({
+    //     hasFocus: true,
+    //   });
+    //   const newEditorState = EditorState.createEmpty();
+    //   const initializedEditorState = EditorState.forceSelection(newEditorState, newSelectionState);
+    //   return initializedEditorState;
+    // }
 
 
     return (
