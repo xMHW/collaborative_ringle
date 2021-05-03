@@ -187,10 +187,15 @@ const Card = ({
         const start = selectionState.getFocusOffset();
         const mergeBlockMap = contentState.getBlockMap();
         const mergeBlock = contentState.getFirstBlock();
+        const anchorOffSet = selectionState.getAnchorOffset();
         if (start === 0) {
           if (contentLength === 0) {
             setBackSpace(true); //BackSpace로 이동할 때에는 위의 Card의 맨 끝으로 가야하기 위해서 선언한 State입니다. 위의 Card렌더링시에 BackSpace가 True이면 커서를 맨 끝으로 설정해 준 후에,
             deleteCurrentCardFromTree(uuid);
+          }
+          else if (anchorOffSet != 0){
+            // console.log('anchor')
+            return
           }
           //카드에 들어있는 내용이 있다면, 위의 줄과 Merge해줘야 합니다.
           else{
@@ -223,6 +228,10 @@ const Card = ({
         const contentLength = contentState.getPlainText().length;
         if(focusPosition == contentLength){
           console.log("newCard!!!!!!")
+          const firstBlock = contentState.getFirstBlock();
+          const modifiedContentState = ContentState.createFromBlockArray([firstBlock]);
+          const modifiedEditorState = EditorState.createWithContent(modifiedContentState);
+          setEditorState(modifiedEditorState);
           setCardCreated(true);
           newCard();
           // setEditorState(EditorState.undo(editorState));
@@ -315,23 +324,7 @@ const Card = ({
       const blockMap = contentState.getBlockMap();
       const lastBlock = contentState.getLastBlock();
       const newBlock = mergeBlockToAnotherBlock(lastBlock, mergingBlock);
-      // console.log(uuid);
-      // console.log(lastBlock.getText());
-      // console.log(newBlock.getText());
-      // console.log(blocksAsArray[blocksAsArray.legnth-1]);
-      // const newBlock = new ContentBlock({
-      //   key: genKey(),
-      //   text: mergingBlock.getText(),
-      //   type: mergingBlock.getType(),
-      //   characterList: mergingBlock.getCharacterList(),
-      //   depth: mergingBlock.getDepth(),
-      //   data: mergingBlock.getData(),
-      // });
-      // const newBlockMap = blockMap.toSeq().concat([[newBlock.getKey(), newBlock]]).toOrderedMap();
-      // const newBlockMap = blockMap.set(newBlock.getKey(), newBlock);
       const newContentState = ContentState.createFromBlockArray([newBlock]);
-      // console.log(newBlockMap.get(newBlock.getKey()).getText());
-      // return contentState.merge({blockMap: newBlockMap });
       return newContentState;
     }
 
