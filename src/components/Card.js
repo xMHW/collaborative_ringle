@@ -86,7 +86,7 @@ const Card = ({
     const checkTextDifference = (originalState, changedState) => {
       const originalContent = originalState.getCurrentContent();
       const changedContent = changedState.getCurrentContent();
-      const originalText = origianlContent.getPlainText();
+      const originalText = originalContent.getPlainText();
       const originalCharacterMetadata = originalContent.getFirstBlock().getCharacterList();
       const changedText = changedContent.getPlainText();
       const changedCharacterMetadata = changedContent.getFirstBlock().getCharacterList();
@@ -98,7 +98,7 @@ const Card = ({
     //cursor difference check! --> check in every onChange(), 만약에 커서 위치의 변화가 있다면, True를 리턴해줄 것임!
     const checkCursorDifference = (originalState, changedState) => {
       const originalSelectionState = originalState.getSelection();
-      const changedSelectionState = chanegedState.getSelection();
+      const changedSelectionState = changedState.getSelection();
       const originalStartOffset = originalSelectionState.getStartOffset();
       const changedStartOffset = changedSelectionState.getStartOffset();
       const originalFocusOffset = originalSelectionState.getFocusOffset();
