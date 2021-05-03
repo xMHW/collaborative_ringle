@@ -3,6 +3,10 @@ import {Editor, EditorState, convertToRaw, convertFromRaw, Modifier, SelectionSt
 import {useParams} from "react-router-dom";
 import {ApiHelper} from '../modules/ApiHelper'; 
 import useDidMountEffect from '../modules/usedidmounteffect';
+import { io } from 'socket.io-client';
+
+const SOCKET_URL = "http://54.180.147.138"
+
 
 let EditorStates = [];
 // let editorStateHistory = [];
@@ -22,16 +26,43 @@ const Card = ({
     const [card, setCard] = useState(); //현재 커서가 있는 카드의 content text
     // const [uuid, setUuid] = useState(uuid); //현재 커서가 있는 카드의 uuid, 엔터 클릭시 생성된 카드의 uuid
     const [hasEnded, setHasEnded] = useState(false); // 커서의 위치가 끝이면, 변경됨을 알려줌
+    const [socket, setSocket] = useState();
+    const [deltaEditorState, setDeltaEditorState] = useState();
+    const [textDifference, setTextDifference] = useState(false);
+    const [cursorDifference, setCursorDifference] = useState(false);
     const cursorRef = useRef();
+
     const DEFAULT_URL = "http://54.180.147.138"
 
+    //socket loading!
+    useEffect(() => {
+      const s = io(SOCKET_URL);
+      setSocket(s);
+
+      return () => {
+        socket.disconnect();
+      }
+    },[]);
+
+    useEffect(() => {
+      if (socket == null || deltaEditorState == null ) return;
+    }, [socket, editorState])
+
     const onChange = (editState) => {
+      if(checkTextDifference(editorState, editState)){
+        setTextDifference(true);
+      }
+      if(checkCursorDifference(editorState, editState)){
+        setCursorDifference(true);
+      }
       setEditorState(editState);
       // updateData(uuid);
       setCurrentCard(uuid);
-      // addHistory(editorState);
-      // console.log(editorStateHistory.length);
     }
+
+    useEffect(() => {
+      if (socket == null || editorState == null || textDifference == false) return;
+    }, [socket, editorState, textDifference])
 
     //editorState History에 기록을 남길 최대 개수를 100개로 제한하기 위해서 setEditorStateHistory를 그냥 사용하지 않고, 개수체크해서 길이를 30아래로 유지하도록 합시다.
     // const addHistory = (editorState) => {
@@ -49,17 +80,32 @@ const Card = ({
       setTime(now);
       updateData(uuid);
       console.log(editorState.getSelection(), uuid);
-      // console.log(editorState.getSelection().getHasFocus());
-      // EditorStates.push(editorState);
-      // console.log(EditorStates);
-
-      // console.log('uuid...');
-      // console.log(uuid);
-      // console.log(editorState.getCurrentContent().getPlainText());
     }, [editorState]);
     
-    const checkDifference = () => {
+    //text difference check! --> check in every onChange(), 만약에 텍스트 변화(스타일)가 있다면, True를 리턴해줄 것임!
+    const checkTextDifference = (originalState, changedState) => {
+      const originalContent = originalState.getCurrentContent();
+      const changedContent = changedState.getCurrentContent();
+      const originalText = origianlContent.getPlainText();
+      const originalCharacterMetadata = originalContent.getFirstBlock().getCharacterList();
+      const changedText = changedContent.getPlainText();
+      const changedCharacterMetadata = changedContent.getFirstBlock().getCharacterList();
+      if(originalText != changedText) return true; //만약에 텍스트가 다르다면! 둘은 다름
+      if(originalCharacterMetadata != changedCharacterMetadata) return true; //만약에 스타일이 다르다면! 둘은 다름
+      return false; //둘 다 동일하다면, 둘은 같음
+    }
 
+    //cursor difference check! --> check in every onChange(), 만약에 커서 위치의 변화가 있다면, True를 리턴해줄 것임!
+    const checkCursorDifference = (originalState, changedState) => {
+      const originalSelectionState = originalState.getSelection();
+      const changedSelectionState = chanegedState.getSelection();
+      const originalStartOffset = originalSelectionState.getStartOffset();
+      const changedStartOffset = changedSelectionState.getStartOffset();
+      const originalFocusOffset = originalSelectionState.getFocusOffset();
+      const changedFocusOffset = changedSelectionState.getFocusOffset();
+      if(originalStartOffset != changedStartOffset) return true; //시작위치가 다르다면 둘은 다름
+      if(originalFocusOffset != changedFocusOffset) return true; //포커스위치가 다르다면 둘은 다름
+      return false; //둘 다 동일하다면, 둘은 동일함
     }
     
     useDidMountEffect(() => {
