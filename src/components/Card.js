@@ -49,9 +49,9 @@ const Card = ({
       setTime(now);
       updateData(uuid);
 
-      console.log('uuid...');
-      console.log(uuid);
-      console.log(editorState.getCurrentContent().getPlainText());
+      // console.log('uuid...');
+      // console.log(uuid);
+      // console.log(editorState.getCurrentContent().getPlainText());
     }, [editorState]);
     
     const checkDifference = () => {
@@ -62,18 +62,18 @@ const Card = ({
       if(currentCard == uuid) {
         if(cursorRef.current){
           cursorRef.current.focus();
-          console.log('current card chang??');
+          // console.log('current card chang??');
           if(backSpace){
             // console.log("focus to end");
-            // setEditorState(EditorState.moveFocusToEnd(editorState));
+            setEditorState(EditorState.moveFocusToEnd(editorState));
             if(mergePending){
               // console.log("now merging!");
               // console.log('pended..!!');
               // console.log(uuid);
               const contentState = editorState.getCurrentContent();
               const length = contentState.getPlainText().length;
-              console.log('before');
-              console.log(contentState.getPlainText());
+              // console.log('before');
+              // console.log(contentState.getPlainText());
 
               const mergedContentState = mergeBlockToContentState(contentState, mergePending);
               
@@ -101,18 +101,18 @@ const Card = ({
               // getData(uuid);
             }
             setBackSpace(false);
+            console.log(backSpace);
           }
         }
       }
     },[currentCard])
-
     useEffect(() => {
       getData(uuid)
     }, [])
     
 
     const getData = async (uuid) => {
-      const response = await ApiHelper('http://54.180.147.138/card/find', null, 'POST',{
+      const response = await ApiHelper('http://localhost:8082/card/find', null, 'POST',{
         _id: uuid,
       })
       // console.log(uuid)
@@ -232,7 +232,7 @@ const Card = ({
       const newCardContentState = newCardEditorState.getCurrentContent();
       const newCardRaw = convertToRaw(newCardContentState);
       const newCardRawToString = JSON.stringify(newCardRaw);
-      const response = await ApiHelper('http://54.180.147.138/card/create', null, 'POST', {
+      const response = await ApiHelper('http://localhost:8082/card/create', null, 'POST', {
         content: newCardRawToString, //엔터를 누르는 곳 뒤에 텍스트가 있다면, 
         created: time,
         updater: userId,
@@ -250,7 +250,7 @@ const Card = ({
         const contentState = editorState.getCurrentContent();
         const raw = convertToRaw(contentState);
         const rawToString = JSON.stringify(raw);
-        const response = await ApiHelper('http://54.180.147.138/card/create', null, 'POST', {
+        const response = await ApiHelper('http://localhost:8082/card/create', null, 'POST', {
             content: rawToString,
             created: time,
             updater: userId,
@@ -272,7 +272,7 @@ const Card = ({
         // console.log(contentState.getPlainText());
         const raw = convertToRaw(contentState);
         const rawToString = JSON.stringify(raw);
-        const response = await ApiHelper('http://54.180.147.138/card/update', null, 'POST', {
+        const response = await ApiHelper('http://localhost:8082/card/update', null, 'POST', {
             _id: uuid,
             content: rawToString,
             created: time,
@@ -288,7 +288,7 @@ const Card = ({
     
     //카드 데이터셋 삭제
     const deleteData = async () => {
-      const response = await ApiHelper('http://54.180.147.138/card/delete',null,'POST', {
+      const response = await ApiHelper('http://localhost:8082/card/delete',null,'POST', {
         _id: uuid,
       })
       console.log(response)
@@ -298,9 +298,9 @@ const Card = ({
       const blockMap = contentState.getBlockMap();
       const lastBlock = contentState.getLastBlock();
       const newBlock = mergeBlockToAnotherBlock(lastBlock, mergingBlock);
-      console.log(uuid);
-      console.log(lastBlock.getText());
-      console.log(newBlock.getText());
+      // console.log(uuid);
+      // console.log(lastBlock.getText());
+      // console.log(newBlock.getText());
       // console.log(blocksAsArray[blocksAsArray.legnth-1]);
       // const newBlock = new ContentBlock({
       //   key: genKey(),

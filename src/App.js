@@ -26,14 +26,14 @@ const App = () => {
 
 
   const createLoc = async () => {
-    const response = await ApiHelper('http://54.180.147.138/loc/create', null, 'POST', {
+    const response = await ApiHelper('http://localhost:8082/loc/create', null, 'POST', {
       refs: [],
     })
   }
 
   //아무런 정보가 없을 때, 트리/카드 하나 생성하도록?
   const createTree = async () => {
-    const response = await ApiHelper('http://54.180.147.138/tree/create', null, 'POST', {
+    const response = await ApiHelper('http://localhost:8082/tree/create', null, 'POST', {
       cards: [],
       page: 0,
     })
@@ -41,22 +41,38 @@ const App = () => {
 
   //트리 데이터 서버를 통해 받아오기, tree데이터는 uuid만 어레이로 저장
   const getTree = async () => {
-    const response = await ApiHelper('http://54.180.147.138/tree/find/all', null, 'GET', null)
+    const response = await ApiHelper('http://localhost:8082/tree/find/all', null, 'GET', null)
     // console.log(response)
     setTree(response[0].cards)
     // console.log(tree)
   }
 
+  const validateTree = async (tree) => {
+    const allCards = await ApiHelper('http://localhost:8082/card/find/all', null, 'GET', null)
+    console.log(allCards);
+    let result = allCards.map(({_id}) => _id)
+    console.log(result)
+    for (var i = 0; i < tree.length; i++){
+      if (result.indexOf(tree[i]) === -1){
+        let indexOfSplice = tree.indexOf(tree[i]);
+        tree.splice(indexOfSplice, 1);
+        console.log("Splicing", tree[i]);
+      }
+      console.log("validating cards while updating")
+    }
+    const validatedTree = tree;
+    setTree(validatedTree)
+  }
 
   const updateTree = async (page, tree) => {
     //page와 cards 받아오기
     validateTree(tree);
-    const response = await ApiHelper('http://54.180.147.138/tree/update', null, 'POST', {
+    const response = await ApiHelper('http://localhost:8082/tree/update', null, 'POST', {
       page: page,
       cards: tree,
     })
-    // console.log("updating tree")
-    // console.log(response)
+    console.log("updating tree")
+    console.log(response)
   }
 
   // console.log(tree)
@@ -112,7 +128,7 @@ const App = () => {
       setTree(newTree);
     }
 
-    // updateTree(1, newTree);
+    updateTree(1, newTree);
     //트리가 업데이트 되었다는 것을 알려줘야 함!!!!!!!!!
   }
   
@@ -131,21 +147,7 @@ const App = () => {
     updateTree(1, newTree);
   }
 
-  const validateTree = async (tree) => {
-    const allCards = await ApiHelper('http://localhost:8082/card/find/all', null, 'GET', null)
-    let result = allCards.map(({_id}) => _id)
-    console.log(result)
-    for (var i = 0; i < tree.length; i++){
-      if (result.indexOf(tree[i]) === -1){
-        let indexOfSplice = tree.indexOf(tree[i]);
-        tree.splice(indexOfSplice, 1);
-        console.log("Splicing", tree[i]);
-      }
-      console.log("validating cards while updating")
-    }
-    const validatedTree = tree;
-    setTree(validatedTree)
-  }
+
 
 
   return <>

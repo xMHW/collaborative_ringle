@@ -17,7 +17,10 @@
   padding-left: 8px;
   padding-right: 8px;
 }
-
 .cards {
-  background-color: skyblue;
+  /* background-color: skyblue; */
+  border: solid;
+  border-color: black;
+  padding: 10px;
+  margin-bottom: 3px;
 }
