@@ -1,5 +1,5 @@
 import React, {useState, useEffect, useRef} from 'react';
-import {Editor, EditorState, convertToRaw, convertFromRaw, Modifier, SelectionState, ContentBlock, ContentState, genKey} from 'draft-js';
+import {Editor, EditorState, convertToRaw, convertFromRaw, Modifier, SelectionState, ContentBlock, ContentState, genKey, RichUtils} from 'draft-js';
 import {useParams} from "react-router-dom";
 import {ApiHelper} from '../modules/ApiHelper'; 
 import useDidMountEffect from '../modules/usedidmounteffect';
@@ -9,6 +9,7 @@ const Card = ({
    setCurrentCard, deleteCurrentCardFromTree, setBackSpace, backSpace,
    mergePending, setMergePending, cardCreated, setCardCreated, goUp, setGoUp,
    socket, setSocket,
+   initIndentCount
 }) => {
     const [editorState, setEditorState] = useState(() => 
         EditorState.createEmpty(),
@@ -23,20 +24,21 @@ const Card = ({
     const [textDifference, setTextDifference] = useState(false);
     const [cursorDifference, setCursorDifference] = useState(false);
     const cursorRef = useRef();
+    // const [indentCnt, setIndentCnt] = useState(initIndentCount || 0);
 
-    const DEFAULT_URL = "http://54.180.147.138"
+    const DEFAULT_URL = "http://localhost:8082"
 
     //socket loading!
     
 
     const onChange = (editState) => {
-      console.log(checkTextDifference(editorState, editState));
-      if(checkTextDifference(editorState, editState)){
-        setTextDifference(true);
-      }
-      if(checkCursorDifference(editorState, editState)){
-        setCursorDifference(true);
-      }
+      // console.log(checkTextDifference(editorState, editState));
+      // if(checkTextDifference(editorState, editState)){
+      //   setTextDifference(true);
+      // }
+      // if(checkCursorDifference(editorState, editState)){
+      //   setCursorDifference(true);
+      // }
       setEditorState(editState);
       // updateData(uuid);
       setCurrentCard(uuid);
@@ -207,21 +209,116 @@ const Card = ({
       if (start === length) {
         findNextCard(uuid);
       }
-      // if(length === start){
-      //   console.log('ended');
-      //   setHasEnded(Math.random());
-      // }else{
-      //   console.log('Not ended yet');
-      //   setHasEnded(false);
-      // }
     }
 
-// 백스페이스 key = backspace, keyCode = 8
+    const handleShiftTab = (evt) => {
+      let currentEditorState = editorState;
+      let currentBlock = getSelectedBlock(currentEditorState);
+      //아무것도 아닐때는 작동 안함
+      if (!isList(currentBlock)){
+        return
+      }
+      //리스트이면 depth 낮추기, depth 0이면, 블록타입 삭제
+      else{
+        const depth = currentBlock.getDepth();
+        if (depth > 0){
+          decreaseBlockDepth(currentBlock, currentEditorState);
+        }else if(depth === 0){
+          removeBlockType(currentEditorState);
+        }
+      }
+      console.log(currentBlock.getDepth())
+    }
+    const handleTab = (evt) => {
+      let currentEditorState = editorState;
+      let currentBlock = getSelectedBlock(currentEditorState);
+      //리스트 아닐때는 블럭타입 unordered-list-item으로 바꾸기
+      if (!isList(currentBlock)){
+        changeBlockType(currentEditorState, 'unordered-list-item');
+      }
+      else{ //set Max Depth
+        if (currentBlock.getDepth() > 6){
+          return;
+        }
+        increaseBlockDepth(currentBlock, currentEditorState);
+      }
+      console.log(isList(currentBlock))
+      console.log(currentBlock.getDepth())
+    }
+    //현재 줄에서 블럭만 추출
+    const getSelectedBlock = (editorState) => {
+      const selection = editorState.getSelection();
+      const contentState = editorState.getCurrentContent();
+      const blockStartKey = selection.getStartKey();
+      return contentState.getBlockMap().get(blockStartKey);
+    }
+
+    //블럭이 리스트인지 확인
+    const isList = (block) => {
+      const blockType = block.getType();
+      const list = blockType === 'unordered-list-item' || blockType === 'ordered-list-item'
+      return list
+    };
+    
+    const decreaseBlockDepth = (block, editorState) => {
+      const blockKey = block.getKey();
+      const depth = block.getDepth();
+      const newBlock = block.set('depth', depth - 1);
+      const contentState = editorState.getCurrentContent();
+      const blockMap = contentState.getBlockMap();
+      const newBlockMap = blockMap.set(blockKey, newBlock);
+      setEditorState(EditorState.push(
+        editorState,
+        contentState.merge({blockMap: newBlockMap}),
+        'adjust-depth'
+      ));
+    }
+    const increaseBlockDepth = (block, editorState) => {
+      const blockKey = block.getKey();
+      const depth = block.getDepth();
+      const newBlock = block.set('depth', depth + 1);
+      const contentState = editorState.getCurrentContent();
+      const blockMap = contentState.getBlockMap();
+      const newBlockMap = blockMap.set(blockKey, newBlock);
+      setEditorState(EditorState.push(
+        editorState,
+        contentState.merge({blockMap: newBlockMap}),
+        'adjust-depth'
+      ));
+    }
+    //Block Type 삭제
+    const removeBlockType = (editorState) => {
+      let newEditorState = RichUtils.toggleBlockType(editorState, 'unstyled');
+      let newContentState = newEditorState.getCurrentContent();
+      setEditorState(EditorState.push(
+        newEditorState,
+        newContentState,
+        'change-block-type'
+      ));
+    }
+    //원하는 타입으로 변경 ('unordered-list-item' or 'ordered-list-item'), editotState가 변함
+    const changeBlockType = (editorState, type) => {
+      let changedEditorState = RichUtils.toggleBlockType(editorState, type)
+      setEditorState(EditorState.push(
+        changedEditorState,
+        changedEditorState.getCurrentContent(),
+        'change-block-type'
+      ))
+    }
+
+    function myBlockStyleFn(contentBlock){
+      const type = contentBlock.getType();
+
+      if (type === 'justTab'){
+        
+      }else if(type === 'bullet'){
+
+      }
+    }
+
 
     //키를 누를때 반응하는 함수
     const onKeyDown = (evt) => {
-      // console.log("In Key Down")
-      // console.log(evt.keyCode)
       //백스페이스를 눌렀을 때
       if (evt.keyCode === 8){
         // 커서 위치가 맨 처음이면서 동시에 카드에 들어있는 내용이 아예없다면! 지워버려야죠
@@ -278,7 +375,41 @@ const Card = ({
       }
       //탭을 눌렀을 때 -> 탭만 vs 쉬프트_탭
       if (evt.key === "Tab"){
-        // setCurrentCard()
+        evt.preventDefault();
+        if (evt.shiftKey){
+          handleShiftTab(evt);
+          console.log("handleShiftTab")
+        }else{
+          handleTab(evt);
+          console.log("handleTab")
+        }
+      }
+      //space 눌렀을 때,,
+      if (evt.keyCode === 32){
+        console.log(evt.keyCode)
+        const contentState = editorState.getCurrentContent();
+        const something = contentState.getFirstBlock().text.split("")[0];
+        //Bullet
+        if (something === "-"){
+          evt.preventDefault();
+          //Block Type 확인
+          let listEditorState = RichUtils.toggleBlockType(editorState, 'unordered-list-item')
+          let listContentState = listEditorState.getCurrentContent();
+          let listSelectionState = listEditorState.getSelection();
+          const newContentState = Modifier.replaceText(
+            listContentState,
+            listSelectionState.merge({
+              anchorOffset: 0,
+              focusOffset: 1
+            }),
+            ""
+          );
+          setEditorState(EditorState.push(
+            listEditorState,
+            newContentState,
+            'replace-text'
+          ));
+        }
       }
       //엔터를 눌렀을 때
       if (evt.keyCode === 13){
@@ -411,7 +542,8 @@ const Card = ({
     // }
 
 
-    return (
+    return (<>
+        {/* <div className = "cards" style = {{width: indentCnt * 30}} ></div> */}
         <div className = "cards" onKeyDown={onKeyDown}>
           <Editor
           editorState={editorState}
@@ -419,7 +551,7 @@ const Card = ({
           ref={cursorRef}
         />
         </div>
-    );
+    </>);
   }
   export default Card;
   

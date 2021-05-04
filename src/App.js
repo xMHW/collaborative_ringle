@@ -8,8 +8,8 @@ import { io } from 'socket.io-client';
 import useDidMountEffect from './modules/usedidmounteffect';
 
 
-const SOCKET_URL = "http://54.180.147.138:5000"
-const DEFAULT_URL = "http://54.180.147.138"
+const SOCKET_URL = "http://localhost:8082:5000"
+const DEFAULT_URL = "http://localhost:8082"
 // const SOCKET_URL = "http://54.180.147.138:5000"
 
 const App = () => {
@@ -191,6 +191,7 @@ const App = () => {
 
 
   return <>
+  <div> Bold/Highlight </div>
   <div style = {{padding:16, width:1100, backgroundColor: 'white', maxWidth:1100, borderRadius:8, display: 'inline-block'}}>
     {
       tree.map((id) => <Card key={id}
