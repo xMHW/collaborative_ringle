@@ -3,7 +3,6 @@ import './App.css';
 import {useParams} from "react-router-dom";
 import {ApiHelper} from './modules/ApiHelper.js';
 import Card from './components/Card.js';
-import {useParams} from "react-router-dom";
 import { io } from 'socket.io-client';
 import useDidMountEffect from './modules/usedidmounteffect';
 
