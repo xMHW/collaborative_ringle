@@ -6,24 +6,32 @@ import App from './App';
 // import Card from './components/Card2'
 import reportWebVitals from './reportWebVitals';
 import {
-  HashRouter as Router,
+  BrowserRouter as Router,
+  HashRouter,
   Route,
   Switch,
 } from 'react-router-dom';
 
 ReactDOM.render(
-  <React.StrictMode>
-    <Router>
-      <Switch>
-        <Route path={process.env.PUBLIC_URL + '/:userId'} component={App}/>
-      </Switch>
-    </Router>
-  </React.StrictMode>,
+  <HashRouter basename="/">
+    <Switch>
+      <Route exact path="/:userId" component={App}/>
+    </Switch>
+  </HashRouter>,
   document.getElementById('root')
   );
   
   // <Route exact path="/" component={App}/>
-// If you want to start measuring performance in your app, pass a function
-// to log results (for example: reportWebVitals(console.log))
-// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
-reportWebVitals();
+  // If you want to start measuring performance in your app, pass a function
+  // to log results (for example: reportWebVitals(console.log))
+  // or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
+  reportWebVitals();
+  
+  // <React.StrictMode>
+  //   <Router>
+  //     <Switch>
+  //       <Route exact path='/:userId' component={App}/>
+  //     </Switch>
+  //   </Router>
+  // </React.StrictMode>,
+  //   document.getElementById('root')
