@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
 import App from './App';
+import Comp from './Comp';
 
 // import Card from './components/Card2'
 import reportWebVitals from './reportWebVitals';
@@ -15,6 +16,7 @@ ReactDOM.render(
   <React.StrictMode>
     <Router>
       <Switch>
+        <Route exact path="/" component={Comp}/>
         <Route exact path="/:userId" component={App}/>
       </Switch>
     </Router>
