@@ -14,13 +14,13 @@ import {
 ReactDOM.render(
   <React.StrictMode>
     <Router>
-      {/* <Route exact path="/:userId" component={App}/> */}
-      <Route exact path="/" component={App}/>
+      <Route exact path="/:userId" component={App}/>
     </Router>
   </React.StrictMode>,
   document.getElementById('root')
-);
-
+  );
+  
+  // <Route exact path="/" component={App}/>
 // If you want to start measuring performance in your app, pass a function
 // to log results (for example: reportWebVitals(console.log))
 // or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
