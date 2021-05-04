@@ -5,7 +5,7 @@ import {ApiHelper} from './modules/ApiHelper.js';
 import Card from './components/Card.js';
 import {useParams} from "react-router-dom";
 
-const DEFAULT_URL = "http://54.180.147.138"
+const DEFAULT_URL = "http://localhost:8082"
 
 const App = () => {
   const [tree, setTree] = useState([]);

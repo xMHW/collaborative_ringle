@@ -1,11 +1,11 @@
 import React, {useState, useEffect, useRef} from 'react';
-import {Editor, EditorState, convertToRaw, convertFromRaw, Modifier, SelectionState, ContentBlock, ContentState, genKey} from 'draft-js';
+import {Editor, EditorState, convertToRaw, convertFromRaw, Modifier, SelectionState, ContentBlock, ContentState, genKey, RichUtils} from 'draft-js';
 import {useParams} from "react-router-dom";
 import {ApiHelper} from '../modules/ApiHelper'; 
 import useDidMountEffect from '../modules/usedidmounteffect';
 import { io } from 'socket.io-client';
 
-const SOCKET_URL = "http://54.180.147.138"
+// const SOCKET_URL = "http://54.180.147.138:5000"
 
 
 let EditorStates = [];
@@ -15,6 +15,7 @@ const Card = ({
   uuid, currentCard, findPrevCard, findNextCard, createdNewCardAtTree,
    setCurrentCard, deleteCurrentCardFromTree, setBackSpace, backSpace,
    mergePending, setMergePending, cardCreated, setCardCreated, goUp, setGoUp,
+   initIndentCnt, 
 }) => {
     const [editorState, setEditorState] = useState(() => 
         EditorState.createEmpty(),
@@ -24,45 +25,63 @@ const Card = ({
     const [time, setTime] = useState(); // created에 들어갈 시간 데이터
     const { userId } = useParams(); //현재 페이지에 접속한 이용자 파라미터
     const [card, setCard] = useState(); //현재 커서가 있는 카드의 content text
-    // const [uuid, setUuid] = useState(uuid); //현재 커서가 있는 카드의 uuid, 엔터 클릭시 생성된 카드의 uuid
     const [hasEnded, setHasEnded] = useState(false); // 커서의 위치가 끝이면, 변경됨을 알려줌
     const [socket, setSocket] = useState();
     const [deltaEditorState, setDeltaEditorState] = useState();
     const [textDifference, setTextDifference] = useState(false);
     const [cursorDifference, setCursorDifference] = useState(false);
     const cursorRef = useRef();
+    //initIndentCnt 있으면 있는걸로, 없으면 0으로 세팅
+    const [indentCnt, setIndentCnt] = useState(initIndentCnt || 0 );
 
-    const DEFAULT_URL = "http://54.180.147.138"
+    const DEFAULT_URL = "http://localhost:8082"
 
     //socket loading!
-    useEffect(() => {
-      const s = io(SOCKET_URL);
-      setSocket(s);
+    // useEffect(() => {
+    //   const s = io(SOCKET_URL);
+    //   setSocket(s);
 
-      return () => {
-        socket.disconnect();
-      }
-    },[]);
-
-    useEffect(() => {
-      if (socket == null || deltaEditorState == null ) return;
-    }, [socket, editorState])
+    //   return () => {
+    //     s.disconnect();
+    //   }
+    // },[]);
 
     const onChange = (editState) => {
-      if(checkTextDifference(editorState, editState)){
-        setTextDifference(true);
-      }
-      if(checkCursorDifference(editorState, editState)){
-        setCursorDifference(true);
-      }
+      // console.log(checkTextDifference(editorState, editState));
+      // if(checkTextDifference(editorState, editState)){
+      //   setTextDifference(true);
+      // }
+      // if(checkCursorDifference(editorState, editState)){
+      //   setCursorDifference(true);
+      // }
       setEditorState(editState);
       // updateData(uuid);
       setCurrentCard(uuid);
     }
 
-    useEffect(() => {
-      if (socket == null || editorState == null || textDifference == false) return;
-    }, [socket, editorState, textDifference])
+    // useEffect(() => {
+    //   if (socket == null || editorState == null || textDifference == false) return;
+    //   const contentState = editorState.getCurrentContent();
+    //   const rawContentState = convertToRaw(contentState);
+    //   socket.emit("send-changes", {delta: rawContentState, id: userId, objectId: uuid});
+    //   setTextDifference(false);
+    // }, [socket, editorState, textDifference]);
+
+    // useEffect(() => {
+    //   if (socket == null || editorState == null) return;
+    //   const handler = (deltamap) => {
+    //     if(deltamap["id"] == userId) return;
+    //     if(deltamap["objectId"] != uuid) return;
+    //     const receivedContentState = convertFromRaw(deltamap["delta"]);
+    //     const receivedEditorState = EditorState.createWithContent(receivedContentState);
+    //     setEditorState(receivedEditorState);
+    //   };
+    //   socket.on("receive-changes", handler);
+
+    //   return () => {
+    //     socket.off("receive-changes", handler);
+    //   }
+    // }, [socket, editorState]);
 
     //editorState History에 기록을 남길 최대 개수를 100개로 제한하기 위해서 setEditorStateHistory를 그냥 사용하지 않고, 개수체크해서 길이를 30아래로 유지하도록 합시다.
     // const addHistory = (editorState) => {
@@ -86,7 +105,7 @@ const Card = ({
     const checkTextDifference = (originalState, changedState) => {
       const originalContent = originalState.getCurrentContent();
       const changedContent = changedState.getCurrentContent();
-      const originalText = origianlContent.getPlainText();
+      const originalText = originalContent.getPlainText();
       const originalCharacterMetadata = originalContent.getFirstBlock().getCharacterList();
       const changedText = changedContent.getPlainText();
       const changedCharacterMetadata = changedContent.getFirstBlock().getCharacterList();
@@ -98,7 +117,7 @@ const Card = ({
     //cursor difference check! --> check in every onChange(), 만약에 커서 위치의 변화가 있다면, True를 리턴해줄 것임!
     const checkCursorDifference = (originalState, changedState) => {
       const originalSelectionState = originalState.getSelection();
-      const changedSelectionState = chanegedState.getSelection();
+      const changedSelectionState = changedState.getSelection();
       const originalStartOffset = originalSelectionState.getStartOffset();
       const changedStartOffset = changedSelectionState.getStartOffset();
       const originalFocusOffset = originalSelectionState.getFocusOffset();
@@ -204,16 +223,24 @@ const Card = ({
       if (start === length) {
         findNextCard(uuid);
       }
-      // if(length === start){
-      //   console.log('ended');
-      //   setHasEnded(Math.random());
-      // }else{
-      //   console.log('Not ended yet');
-      //   setHasEnded(false);
-      // }
     }
-
-// 백스페이스 key = backspace, keyCode = 8
+    const handleTab = (evt) => {
+      evt.preventDefault();
+      let tabIndent = '    ';
+      const tabEditorState = RichUtils.onTab(evt, editorState, 4);
+      // let currentState = editorState;
+      // const contentState = editorState.getCurrentContent();
+      // const contentLength = contentState.getPlainText().length;
+      // const selectionState = editorState.getSelection();
+      
+      // if (evt.shiftKey) {
+      //   console.log("shift")
+      //   setIndentCnt(cnt => cnt - 1);
+      // }else{
+      //   setIndentCnt(cnt => cnt + 1);
+      // }
+      // console.log(indentCnt);
+    }
 
     //키를 누를때 반응하는 함수
     const onKeyDown = (evt) => {
@@ -275,7 +302,8 @@ const Card = ({
       }
       //탭을 눌렀을 때 -> 탭만 vs 쉬프트_탭
       if (evt.key === "Tab"){
-        // setCurrentCard()
+        console.log(evt.key)
+        handleTab(evt);
       }
       //엔터를 눌렀을 때
       if (evt.keyCode === 13){
@@ -409,12 +437,15 @@ const Card = ({
 
 
     return (
+        <div> 
+        <div style={{width: indentCnt * 30}}> </div>
         <div className = "cards" onKeyDown={onKeyDown}>
           <Editor
           editorState={editorState}
           onChange={onChange}
           ref={cursorRef}
         />
+        </div>
         </div>
     );
   }
