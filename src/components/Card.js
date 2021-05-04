@@ -85,6 +85,7 @@ const Card = ({
       setTime(now);
       updateData(uuid);
       console.log(editorState.getSelection(), uuid);
+      console.log(editorState.getCurrentContent().getFirstBlock());
     }, [editorState]);
     
     //text difference check! --> check in every onChange(), 만약에 텍스트 변화(스타일)가 있다면, True를 리턴해줄 것임!
@@ -187,13 +188,6 @@ const Card = ({
       //start는 현재 카드에서의 커서의 위치 반환(텍스트의 index와 동일)
       let start = selectionState.getStartOffset();
       if (start === 0){
-        //현재 카드줄에 텍스트가 없다면
-        // if(!currentContent.hasText()){
-        //   findPrevCard(uuid, 'delete');
-        //   //currentCard의 uuid를 위의 카드값으로 변경
-        // }else{
-        //   findPrevCard(uuid);
-        // }
         findPrevCard(uuid);
       }
     }
@@ -234,10 +228,10 @@ const Card = ({
       let currentBlock = getSelectedBlock(currentEditorState);
       //리스트 아닐때는 블럭타입 unordered-list-item으로 바꾸기
       if (!isList(currentBlock)){
-        changeBlockType(currentEditorState, 'unordered-list-item');
+        changeBlockType(currentEditorState, 'tab-list-item');
       }
       else{ //set Max Depth
-        if (currentBlock.getDepth() > 6){
+        if (currentBlock.getDepth() > 3){
           return;
         }
         increaseBlockDepth(currentBlock, currentEditorState);
@@ -256,7 +250,7 @@ const Card = ({
     //블럭이 리스트인지 확인
     const isList = (block) => {
       const blockType = block.getType();
-      const list = blockType === 'unordered-list-item' || blockType === 'ordered-list-item'
+      const list = blockType === 'bullet-list-item' || blockType === 'ordered-list-item' || blockType === 'tab-list-item'
       return list
     };
     
@@ -306,16 +300,36 @@ const Card = ({
       ))
     }
 
-    function myBlockStyleFn(contentBlock){
-      const type = contentBlock.getType();
-
-      if (type === 'justTab'){
-        
-      }else if(type === 'bullet'){
-
+    function myBlockStyleFn(){
+      const type = editorState.getCurrentContent().getFirstBlock().getType();
+      const depth = editorState.getCurrentContent().getFirstBlock().getDepth();
+      if (type === 'tab-list-item'){
+        if (depth === 0){
+          return 'tabList0'
+        }else if (depth === 1){
+          return 'tabList1'
+        }else if (depth === 2){
+          return 'tabList2'
+        }else if (depth === 3){
+          return 'tabList3'
+        }else if (depth === 4){
+          return 'tabList4'
+        }
+        return 'tabList'
+      } else if (type === 'bullet-list-item'){
+        if (depth === 0){
+          return 'bulletList0'
+        }else if (depth === 1){
+          return 'bulletList1'
+        }else if (depth === 2){
+          return 'bulletList2'
+        }else if (depth === 3){
+          return 'bulletList3'
+        }else if (depth === 4){
+          return 'bulletList4'
+        }
       }
     }
-
 
     //키를 누를때 반응하는 함수
     const onKeyDown = (evt) => {
@@ -376,6 +390,7 @@ const Card = ({
       //탭을 눌렀을 때 -> 탭만 vs 쉬프트_탭
       if (evt.key === "Tab"){
         evt.preventDefault();
+
         if (evt.shiftKey){
           handleShiftTab(evt);
           console.log("handleShiftTab")
@@ -393,7 +408,7 @@ const Card = ({
         if (something === "-"){
           evt.preventDefault();
           //Block Type 확인
-          let listEditorState = RichUtils.toggleBlockType(editorState, 'unordered-list-item')
+          let listEditorState = RichUtils.toggleBlockType(editorState, 'bullet-list-item')
           let listContentState = listEditorState.getCurrentContent();
           let listSelectionState = listEditorState.getSelection();
           const newContentState = Modifier.replaceText(
@@ -549,6 +564,7 @@ const Card = ({
           editorState={editorState}
           onChange={onChange}
           ref={cursorRef}
+          blockStyleFn={myBlockStyleFn}
         />
         </div>
     </>);

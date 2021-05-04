@@ -23,3 +23,73 @@
   padding: 10px;
   margin-bottom: 3px;
 }
+.tabList0{
+  color: black;
+  /* font-family: 'Hoefler Text', Georgia, serif; */
+  font-style: bold;
+  text-align: left;
+  padding-left: 40px;
+}
+.tabList1{
+  color: black;
+  /* font-family: 'Hoefler Text', Georgia, serif; */
+  font-style: bold;
+  text-align: left;
+  padding-left: 80px;
+}
+.tabList2{
+  color: black;
+  /* font-family: 'Hoefler Text', Georgia, serif; */
+  font-style: bold;
+  text-align: left;
+  padding-left: 120px;
+}
+.tabList3{
+  color: black;
+  /* font-family: 'Hoefler Text', Georgia, serif; */
+  font-style: bold;
+  text-align: left;
+  padding-left: 160px;
+}
+.tabList4{
+  color: black;
+  /* font-family: 'Hoefler Text', Georgia, serif; */
+  font-style: bold;
+  text-align: left;
+  padding-left: 200px;
+}
+.bulletList0{
+  color: blue;
+  padding-left: 40px;
+  display: list-item;
+  list-style-position: inside;
+  list-style-type: disc;
+}
+.bulletList1{
+  color: blue;
+  padding-left: 80px;
+  display: list-item;
+  list-style-position: inside;
+  list-style-type: circle;
+}
+.bulletList2{
+  color: blue;
+  padding-left: 120px;
+  display: list-item;
+  list-style-position: inside;
+  list-style-type: circle;
+}
+.bulletList3{
+  color: blue;
+  padding-left: 160px;
+  display: list-item;
+  list-style-position: inside;
+  list-style-type: circle;
+}
+.bulletList4{
+  color: blue;
+  padding-left: 200px;
+  display: list-item;
+  list-style-position: inside;
+  list-style-type: circle;
+}
