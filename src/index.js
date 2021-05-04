@@ -15,7 +15,7 @@ import {
 ReactDOM.render(
   <HashRouter basename="/">
     <Switch>
-      <Route exact path="/:userId" component={App}/>
+      <Route exact path="/collaborative_ringle_client/:userId" component={App}/>
     </Switch>
   </HashRouter>,
   document.getElementById('root')
