@@ -13,9 +13,9 @@ import {
 
 ReactDOM.render(
   <React.StrictMode>
-    <Router basename={process.env.PUBLIC_URL}>
+    <Router>
       <Switch>
-        <Route exact path="/:userId" component={App}/>
+        <Route path={process.env.PUBLIC_URL + '/:userId'} component={App}/>
       </Switch>
     </Router>
   </React.StrictMode>,
