@@ -13,11 +13,11 @@ import {
 } from 'react-router-dom';
 
 ReactDOM.render(
-  <HashRouter basename="/">
+  <Router basename={process.env.PUBLIC_URL}>
     <Switch>
       <Route exact path="/collaborative_ringle_client/:userId" component={App}/>
     </Switch>
-  </HashRouter>,
+  </Router>,
   document.getElementById('root')
   );
   
