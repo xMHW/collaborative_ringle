@@ -56,6 +56,10 @@ const Card = ({
         if(deltamap["id"] == userId) return;
         if(deltamap["objectId"] != uuid) return;
         const receivedContentState = convertFromRaw(deltamap["delta"]);
+        const currentSelectionState = editorState.getSelection();
+        const currentAnchorOffset = currentSelectionState.getAnchorOffset();
+        const currentFocusOffset = currentSelectionState.getFocusOffset();
+        // const receivedSelectionState = currentSelectionState.set({anchorOffset: (currentAnchorOffset + 1), focusOffset: (currentFocusOffset + 1)});
         const receivedEditorState = EditorState.set(editorState, {currentContent: receivedContentState});
         // const receivedEditorState = EditorState.createWithContent(receivedContentState);
         setEditorState(receivedEditorState);
