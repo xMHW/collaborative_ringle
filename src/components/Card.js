@@ -63,7 +63,7 @@ const Card = ({
 
     const checkOffsetDelta = (myOffset, targetOffset, targetDelta) => {
       if(myOffset<=targetOffset) return myOffset;
-      return myOffset+targetDelta;
+      return myOffset + targetDelta;
     }
 
     const checkOffsetBetween = (myOffset, targetAnchorOffset, targetFocusOffset) => {
@@ -79,7 +79,7 @@ const Card = ({
         return changedSelectionStateWithAnchor;
       }
       const changedSelectionState = selectionState.set('focusOffset', changedOffset);
-      const changedSelectionStateWithAnchor = changedSelectionState.set('focusOffset', changedOffset);
+      const changedSelectionStateWithAnchor = changedSelectionState.set('anchorOffset', changedOffset);
       return changedSelectionStateWithAnchor;
     }
 
