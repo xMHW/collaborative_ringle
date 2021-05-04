@@ -6,14 +6,14 @@ import App from './App';
 // import Card from './components/Card2'
 import reportWebVitals from './reportWebVitals';
 import {
-  BrowserRouter as Router,
+  HashRouter as Router,
   Route,
   Switch,
 } from 'react-router-dom';
 
 ReactDOM.render(
   <React.StrictMode>
-    <Router basename={`/${process.env.PUBLIC_URL}`}>
+    <Router basename={process.env.PUBLIC_URL}>
       <Switch>
         <Route exact path="/:userId" component={App}/>
       </Switch>
