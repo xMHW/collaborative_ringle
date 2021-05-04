@@ -22,6 +22,7 @@ const Card = ({
     const [hasEnded, setHasEnded] = useState(false); // 커서의 위치가 끝이면, 변경됨을 알려줌
     const [textDifference, setTextDifference] = useState(false);
     const [cursorDifference, setCursorDifference] = useState(false);
+    const [oldOffsets, setOldOffsets] = useState({AnchorOffset: 0, FocusOffset: 0});
     const cursorRef = useRef();
 
     const DEFAULT_URL = "http://54.180.147.138"
@@ -31,6 +32,10 @@ const Card = ({
 
     const onChange = (editState) => {
       console.log(checkTextDifference(editorState, editState));
+      const oldSelectionState = editorState.getSelection();
+      const oldAnchorOffset = oldSelectionState.getAnchorOffset();
+      const oldFocusOffset = oldSelectionState.getFocusOffset();
+      setOldOffsets({AnchorOffset: oldAnchorOffset, FocusOffset: oldFocusOffset});
       if(checkTextDifference(editorState, editState)){
         setTextDifference(true);
       }
@@ -41,14 +46,42 @@ const Card = ({
       // updateData(uuid);
       setCurrentCard(uuid);
     }
-
+    //소켓을 통하여 변화가 있을 경우에 보내주는 것 -> 보낼 내용 contentState Raw화 한것, 변경한 userid, 변경한 object id, 변화 이전 업데이터의 커서 오프셋, 오프셋 변화량(나중 오프셋 - 이전 오프셋)
     useEffect(() => {
       if (socket == null || editorState == null || textDifference == false) return;
       const contentState = editorState.getCurrentContent();
       const rawContentState = convertToRaw(contentState);
-      socket.emit("send-changes", {delta: rawContentState, id: userId, objectId: uuid});
+      const selectionState = editorState.getSelection();
+      const AnchorOffset = selectionState.getAnchorOffset();
+      const FocusOffset = selectionState.getFocusOffset();
+      const AnchorDelta = AnchorOffset - oldOffsets["AnchorOffset"];
+      const FocusDelta = FocusOffset - oldOffsets["FocusOffset"];
+      const offsetDelta = {AnchorDelta: AnchorDelta, FocusDelta: FocusDelta};
+      socket.emit("send-changes", {delta: rawContentState, id: userId, objectId: uuid, oldOffsets: oldOffsets, offsetDelta: offsetDelta});
       setTextDifference(false);
     }, [socket, editorState, textDifference]);
+
+    const checkOffsetDelta = (myOffset, targetOffset, targetDelta) => {
+      if(myOffset<=targetOffset) return myOffset;
+      return myOffset+targetDelta;
+    }
+
+    const checkOffsetBetween = (myOffset, targetAnchorOffset, targetFocusOffset) => {
+      if(targetAnchorOffset<myOffset && myOffset<targetFocusOffset) return targetAnchorOffset;
+      if(targetFocusOffset<myOffset && myOffset<targetAnchorOffset) return targetFocusOffset;
+      return null;
+    }
+
+    const changeSelectionState = (changedOffset, checkBetweenOffset, selectionState) => {
+      if(checkBetweenOffset) {
+        const changedSelectionState = selectionState.set('focusOffset', checkBetweenOffset);
+        const changedSelectionStateWithAnchor = changedSelectionState.set('anchorOffset', checkBetweenOffset);
+        return changedSelectionStateWithAnchor;
+      }
+      const changedSelectionState = selectionState.set('focusOffset', changedOffset);
+      const changedSelectionStateWithAnchor = changedSelectionState.set('focusOffset', changedOffset);
+      return changedSelectionStateWithAnchor;
+    }
 
     useEffect(() => {
       if (socket == null || editorState == null) return;
@@ -57,12 +90,16 @@ const Card = ({
         if(deltamap["objectId"] != uuid) return;
         const receivedContentState = convertFromRaw(deltamap["delta"]);
         const currentSelectionState = editorState.getSelection();
-        const currentAnchorOffset = currentSelectionState.getAnchorOffset();
-        const currentFocusOffset = currentSelectionState.getFocusOffset();
-        // const receivedSelectionState = currentSelectionState.set({anchorOffset: (currentAnchorOffset + 1), focusOffset: (currentFocusOffset + 1)});
+        const currentAnchorOffset = currentSelectionState.getAnchorOffset(); // 일단 focus, anchor가 동일하다 가정(블럭 선택 고려 x)
+        // const currentFocusOffset = currentSelectionState.getFocusOffset();
+        const changedAnchorOffset = checkOffsetDelta(currentAnchorOffset, deltamap["oldOffsets"]["AnchorOffset"], deltamap["offsetDelta"]["AnchorDelta"]);
+        // const changedFocusOffset = checkOffsetDelta(currentFocusOffset, deltamap["oldOffsets"]["FocusOffset"], deltamap["offsetDelta"]["FocusDelta"]);
+        const checkBetweenOffset = checkOffsetBetween(currentAnchorOffset, deltamap["oldOffsets"]["AnchorOffset"], deltamap["oldOffsets"]["FocusOffset"]);
+        const changedSelectionState = changeSelectionState(changedAnchorOffset, checkBetweenOffset, currentSelectionState);
         const receivedEditorState = EditorState.set(editorState, {currentContent: receivedContentState});
+        const receivedEditorStateWithSelection = EditorState.acceptSelection(receivedEditorState, changedSelectionState);
         // const receivedEditorState = EditorState.createWithContent(receivedContentState);
-        setEditorState(receivedEditorState);
+        setEditorState(receivedEditorStateWithSelection);
       };
       socket.on("receive-changes", handler);
 
@@ -86,7 +123,6 @@ const Card = ({
       var now = today.getHours() + ':' + today.getMinutes() + ':' + today.getSeconds();
       setTime(now);
       updateData(uuid);
-      console.log(editorState.getSelection(), uuid);
     }, [editorState]);
     
     //text difference check! --> check in every onChange(), 만약에 텍스트 변화(스타일)가 있다면, True를 리턴해줄 것임!

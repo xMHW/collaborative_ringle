@@ -6,7 +6,7 @@ import App from './App';
 // import Card from './components/Card2'
 import reportWebVitals from './reportWebVitals';
 import {
-  HashRouter as Router,
+  BrowserRouter as Router,
   Route,
   Switch,
 } from 'react-router-dom';
