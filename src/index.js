@@ -15,7 +15,7 @@ import {
 ReactDOM.render(
   <Router basename={process.env.PUBLIC_URL}>
     <Switch>
-      <Route exact path="/collaborative_ringle_client/:userId" component={App}/>
+      <Route exact path="/" component={App}/>
     </Switch>
   </Router>,
   document.getElementById('root')
