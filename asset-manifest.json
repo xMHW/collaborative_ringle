@@ -1,8 +1,8 @@
 {
   "files": {
     "main.css": "/collaborative_ringle_client/static/css/main.5bbe414f.chunk.css",
-    "main.js": "/collaborative_ringle_client/static/js/main.f10c8031.chunk.js",
-    "main.js.map": "/collaborative_ringle_client/static/js/main.f10c8031.chunk.js.map",
+    "main.js": "/collaborative_ringle_client/static/js/main.b1a08da3.chunk.js",
+    "main.js.map": "/collaborative_ringle_client/static/js/main.b1a08da3.chunk.js.map",
     "runtime-main.js": "/collaborative_ringle_client/static/js/runtime-main.4fee7654.js",
     "runtime-main.js.map": "/collaborative_ringle_client/static/js/runtime-main.4fee7654.js.map",
     "static/js/2.a464c194.chunk.js": "/collaborative_ringle_client/static/js/2.a464c194.chunk.js",
@@ -17,6 +17,6 @@
     "static/js/runtime-main.4fee7654.js",
     "static/js/2.a464c194.chunk.js",
     "static/css/main.5bbe414f.chunk.css",
-    "static/js/main.f10c8031.chunk.js"
+    "static/js/main.b1a08da3.chunk.js"
   ]
 }
