@@ -3,18 +3,12 @@ import {Editor, EditorState, convertToRaw, convertFromRaw, Modifier, SelectionSt
 import {useParams} from "react-router-dom";
 import {ApiHelper} from '../modules/ApiHelper'; 
 import useDidMountEffect from '../modules/usedidmounteffect';
-import { io } from 'socket.io-client';
-
-const SOCKET_URL = "http://54.180.147.138:5000"
-
-
-let EditorStates = [];
-// let editorStateHistory = [];
 
 const Card = ({
   uuid, currentCard, findPrevCard, findNextCard, createdNewCardAtTree,
    setCurrentCard, deleteCurrentCardFromTree, setBackSpace, backSpace,
    mergePending, setMergePending, cardCreated, setCardCreated, goUp, setGoUp,
+   socket, setSocket,
 }) => {
     const [editorState, setEditorState] = useState(() => 
         EditorState.createEmpty(),
@@ -26,8 +20,6 @@ const Card = ({
     const [card, setCard] = useState(); //현재 커서가 있는 카드의 content text
     // const [uuid, setUuid] = useState(uuid); //현재 커서가 있는 카드의 uuid, 엔터 클릭시 생성된 카드의 uuid
     const [hasEnded, setHasEnded] = useState(false); // 커서의 위치가 끝이면, 변경됨을 알려줌
-    const [socket, setSocket] = useState();
-    const [deltaEditorState, setDeltaEditorState] = useState();
     const [textDifference, setTextDifference] = useState(false);
     const [cursorDifference, setCursorDifference] = useState(false);
     const cursorRef = useRef();
@@ -35,18 +27,7 @@ const Card = ({
     const DEFAULT_URL = "http://54.180.147.138"
 
     //socket loading!
-    useEffect(() => {
-      const s = io(SOCKET_URL);
-      setSocket(s);
-
-      return () => {
-        s.disconnect();
-      }
-    },[]);
-
-    useEffect(() => {
-      if (socket == null || deltaEditorState == null ) return;
-    }, [socket, editorState])
+    
 
     const onChange = (editState) => {
       console.log(checkTextDifference(editorState, editState));
@@ -75,7 +56,8 @@ const Card = ({
         if(deltamap["id"] == userId) return;
         if(deltamap["objectId"] != uuid) return;
         const receivedContentState = convertFromRaw(deltamap["delta"]);
-        const receivedEditorState = EditorState.createWithContent(receivedContentState);
+        const receivedEditorState = EditorState.set(editorState, {currentContent: receivedContentState});
+        // const receivedEditorState = EditorState.createWithContent(receivedContentState);
         setEditorState(receivedEditorState);
       };
       socket.on("receive-changes", handler);

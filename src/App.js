@@ -4,8 +4,13 @@ import './App.css';
 import {ApiHelper} from './modules/ApiHelper.js';
 import Card from './components/Card.js';
 import {useParams} from "react-router-dom";
+import { io } from 'socket.io-client';
+import useDidMountEffect from './modules/usedidmounteffect';
 
+
+const SOCKET_URL = "http://54.180.147.138:5000"
 const DEFAULT_URL = "http://54.180.147.138"
+// const SOCKET_URL = "http://54.180.147.138:5000"
 
 const App = () => {
   const [tree, setTree] = useState([]);
@@ -16,17 +21,48 @@ const App = () => {
   const [mergePending, setMergePending] = useState(null);
   const [cardCreated, setCardCreated] = useState(false);
   const [goingUp, setGoingUp] = useState(false);
+  const [socket, setSocket] = useState();
+  const [treeDifference, setTreeDifference] = useState(false);
+  const [treeCardCount, setTreeCardCount] = useState(0);
 
-  useEffect(( ) => {
+
+  useEffect(() => {
     getTree();
-  }, [])
+  }, []);
 
-  // useEffect(( ) => {
-  //   getTree()
-  // }, [tree])
+  useEffect(() => {
+    if(checkTreeDifference(tree.length)) setTreeDifference(true);
+    setTreeCardCount(tree.length);
+  }, [tree]);
 
+  const checkTreeDifference = (length) => {
+    if(treeCardCount != length) return true;
+    return false;
+  };
 
+  useEffect(() => {
+    const s = io(SOCKET_URL);
+    setSocket(s);
 
+    return () => {
+      s.disconnect();
+    }
+  },[]);
+
+  useDidMountEffect(() => {
+    if (socket == null || tree == null || treeDifference == false) return;
+    socket.emit("send-tree-changes", {delta: tree, id: userId});
+    setTreeDifference(true);
+  }, [socket, tree, treeDifference]);
+
+  useDidMountEffect(() => {
+    if (socket == null || tree == null) return;
+    const handler = (deltamap) => {
+      if(deltamap["id"] == userId) return;
+      setTree(deltamap["delta"]);
+    };
+    socket.on("receive-tree-changes", handler);
+  }, [socket, tree]);
 
   const createLoc = async () => {
     const response = await ApiHelper(`${DEFAULT_URL}/loc/create`, null, 'POST', {
@@ -174,6 +210,8 @@ const App = () => {
       setCardCreated = {setCardCreated}
       goUp = {goingUp}
       setGoUp = {setGoingUp}
+      socket = {socket}
+      setSocket = {setSocket}
     />)
     }
     </div>
