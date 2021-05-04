@@ -13,8 +13,10 @@ import {
 
 ReactDOM.render(
   <React.StrictMode>
-    <Router>
-      <Route exact path="/:userId" component={App}/>
+    <Router basename={process.env.PUBLIC_URL}>
+      <Switch>
+        <Route exact path="/:userId" component={App}/>
+      </Switch>
     </Router>
   </React.StrictMode>,
   document.getElementById('root')
