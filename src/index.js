@@ -13,7 +13,7 @@ import {
 
 ReactDOM.render(
   <React.StrictMode>
-    <Router basename={process.env.PUBLIC_URL}>
+    <Router basename={`/${process.env.PUBLIC_URL}`}>
       <Switch>
         <Route exact path="/:userId" component={App}/>
       </Switch>
