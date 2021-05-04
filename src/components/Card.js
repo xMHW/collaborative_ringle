@@ -5,7 +5,7 @@ import {ApiHelper} from '../modules/ApiHelper';
 import useDidMountEffect from '../modules/usedidmounteffect';
 import { io } from 'socket.io-client';
 
-const SOCKET_URL = "http://54.180.147.138"
+const SOCKET_URL = "http://54.180.147.138:5000"
 
 
 let EditorStates = [];
@@ -40,7 +40,7 @@ const Card = ({
       setSocket(s);
 
       return () => {
-        socket.disconnect();
+        s.disconnect();
       }
     },[]);
 
@@ -49,6 +49,7 @@ const Card = ({
     }, [socket, editorState])
 
     const onChange = (editState) => {
+      console.log(checkTextDifference(editorState, editState));
       if(checkTextDifference(editorState, editState)){
         setTextDifference(true);
       }
@@ -62,7 +63,27 @@ const Card = ({
 
     useEffect(() => {
       if (socket == null || editorState == null || textDifference == false) return;
-    }, [socket, editorState, textDifference])
+      const contentState = editorState.getCurrentContent();
+      const rawContentState = convertToRaw(contentState);
+      socket.emit("send-changes", {delta: rawContentState, id: userId, objectId: uuid});
+      setTextDifference(false);
+    }, [socket, editorState, textDifference]);
+
+    useEffect(() => {
+      if (socket == null || editorState == null) return;
+      const handler = (deltamap) => {
+        if(deltamap["id"] == userId) return;
+        if(deltamap["objectId"] != uuid) return;
+        const receivedContentState = convertFromRaw(deltamap["delta"]);
+        const receivedEditorState = EditorState.createWithContent(receivedContentState);
+        setEditorState(receivedEditorState);
+      };
+      socket.on("receive-changes", handler);
+
+      return () => {
+        socket.off("receive-changes", handler);
+      }
+    }, [socket, editorState]);
 
     //editorState History에 기록을 남길 최대 개수를 100개로 제한하기 위해서 setEditorStateHistory를 그냥 사용하지 않고, 개수체크해서 길이를 30아래로 유지하도록 합시다.
     // const addHistory = (editorState) => {
