@@ -16,7 +16,6 @@ ReactDOM.render(
   <React.StrictMode>
     <Router>
       <Switch>
-        <Route exact path="/" component={Comp}/>
         <Route exact path="/:userId" component={App}/>
       </Switch>
     </Router>
