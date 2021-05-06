@@ -1,15 +1,16 @@
 import React, {useState, useEffect, useRef} from 'react';
-import {Editor, EditorState, convertToRaw, convertFromRaw, Modifier, SelectionState, ContentBlock, ContentState, genKey, RichUtils} from 'draft-js';
+import {Editor, EditorState, convertToRaw, convertFromRaw, Modifier, SelectionState, ContentBlock, ContentState, genKey, RichUtils, KeyBindingUtil} from 'draft-js';
 import {useParams} from "react-router-dom";
 import {ApiHelper} from '../modules/ApiHelper'; 
 import useDidMountEffect from '../modules/usedidmounteffect';
+
+const {hasCommandModifier} = KeyBindingUtil;
 
 const Card = ({
   uuid, currentCard, findPrevCard, findNextCard, createdNewCardAtTree,
    setCurrentCard, deleteCurrentCardFromTree, setBackSpace, backSpace,
    mergePending, setMergePending, cardCreated, setCardCreated, goUp, setGoUp,
-   socket, setSocket,
-   initIndentCount
+   socket, setSocket, listCardCreated, setListCardCreated
 }) => {
     const [editorState, setEditorState] = useState(() => 
         EditorState.createEmpty(),
@@ -23,14 +24,12 @@ const Card = ({
     const [hasEnded, setHasEnded] = useState(false); // 커서의 위치가 끝이면, 변경됨을 알려줌
     const [textDifference, setTextDifference] = useState(false);
     const [cursorDifference, setCursorDifference] = useState(false);
+    const [listCreated, setListCreated] = useState(false);
     const cursorRef = useRef();
-    // const [indentCnt, setIndentCnt] = useState(initIndentCount || 0);
-
     const DEFAULT_URL = "http://localhost:8082"
 
     //socket loading!
     
-
     const onChange = (editState) => {
       // console.log(checkTextDifference(editorState, editState));
       // if(checkTextDifference(editorState, editState)){
@@ -39,6 +38,8 @@ const Card = ({
       // if(checkCursorDifference(editorState, editState)){
       //   setCursorDifference(true);
       // }
+      console.log(editorState.getCurrentContent().getFirstBlock(), uuid);
+
       setEditorState(editState);
       // updateData(uuid);
       setCurrentCard(uuid);
@@ -84,8 +85,7 @@ const Card = ({
       var now = today.getHours() + ':' + today.getMinutes() + ':' + today.getSeconds();
       setTime(now);
       updateData(uuid);
-      console.log(editorState.getSelection(), uuid);
-      console.log(editorState.getCurrentContent().getFirstBlock());
+      console.log(editorState.getCurrentContent().getFirstBlock().getType(), uuid);
     }, [editorState]);
     
     //text difference check! --> check in every onChange(), 만약에 텍스트 변화(스타일)가 있다면, True를 리턴해줄 것임!
@@ -120,19 +120,29 @@ const Card = ({
           cursorRef.current.focus();
           // console.log(editorState.getSelection().getHasFocus());
           if(cardCreated) {
-            const contentState = editorState.getCurrentContent();
-            const selectionState = editorState.getSelection();
-            const length = contentState.getPlainText().length;
-            const mergedSelectionState = selectionState.merge({
-              focusOffset: length,
-              anchorOffset: length,
-              hasFocus: true,
-            });
-            setEditorState(EditorState.acceptSelection(editorState, mergedSelectionState));
+            console.log("Inside cardCreated"); 
+            // setEditorState(EditorState.createEmpty());
+            // getData(uuid);
+            // setEditorState(EditorState.moveFocusToEnd(editorState));
+            // const contentState = editorState.getCurrentContent();
+            // const selectionState = editorState.getSelection();
+            // const focusKey = selectionState.getFocusKey();
+            // const length = contentState.getPlainText().length;
+            // const newCardRaw = convertToRaw(contentState);
+            // const newEditorState = EditorState.createWithContent(convertFromRaw(newCardRaw))
+            // const newSelectionState = selectionState.merge({
+            //   focusKey: focusKey,
+            //   focusOffset: length,
+            //   anchorOffset: length,
+            //   hasFocus: true,
+            // })
+            // setEditorState(EditorState.acceptSelection(newEditorState, newSelectionState));
+            
             setCardCreated(false);
           }
           if(backSpace){
             setEditorState(EditorState.moveFocusToEnd(editorState));
+            console.log("backSpace")
             if(mergePending){
               const contentState = editorState.getCurrentContent();
               const selectionState = editorState.getSelection();
@@ -162,10 +172,26 @@ const Card = ({
 
 
     useEffect(() => {
-      if(cardCreated) return;
+      if(cardCreated){
+        return;
+      }
       getData(uuid);
     }, [])
-  
+    const getNewCardData = async (uuid) => {
+      const response = await ApiHelper(`${DEFAULT_URL}/card/find`, null, 'POST',{
+        _id: uuid,
+      })
+      setCard(response)
+      if (response){
+        // console.log(response.content)
+        const parsedContent = JSON.parse(response.content)
+        const defaultEditorState = EditorState.createWithContent(convertFromRaw(parsedContent))
+        console.log(defaultEditorState)
+        return defaultEditorState
+      }else{
+        // console.log("No Response so default empty editor state returned")
+      }
+    }
     const getData = async (uuid) => {
       const response = await ApiHelper(`${DEFAULT_URL}/card/find`, null, 'POST',{
         _id: uuid,
@@ -177,6 +203,7 @@ const Card = ({
         // console.log(response.content)
         const parsedContent = JSON.parse(response.content)
         const defaultEditorState = EditorState.createWithContent(convertFromRaw(parsedContent))
+        console.log(defaultEditorState);
         setEditorState(defaultEditorState)  
       }else{
         // console.log("No Response so default empty editor state returned")
@@ -253,6 +280,12 @@ const Card = ({
       const list = blockType === 'bullet-list-item' || blockType === 'ordered-list-item' || blockType === 'tab-list-item'
       return list
     };
+
+    const isBulletList = (block) => {
+      const blockType = block.getType();
+      const list = blockType === 'bullet-list-item'
+      return list
+    }
     
     const decreaseBlockDepth = (block, editorState) => {
       const blockKey = block.getKey();
@@ -290,7 +323,7 @@ const Card = ({
         'change-block-type'
       ));
     }
-    //원하는 타입으로 변경 ('unordered-list-item' or 'ordered-list-item'), editotState가 변함
+    //원하는 타입으로 변경 ('unordered-list-item' or 'ordered-list-item' or 'tab-list-item'), editotState가 변함
     const changeBlockType = (editorState, type) => {
       let changedEditorState = RichUtils.toggleBlockType(editorState, type)
       setEditorState(EditorState.push(
@@ -343,20 +376,40 @@ const Card = ({
         const mergeBlockMap = contentState.getBlockMap();
         const mergeBlock = contentState.getFirstBlock();
         const anchorOffSet = selectionState.getAnchorOffset();
+        //백스페이스를 눌렀을 때, 카드 타입이 존재하면, 카드 타입부터 없애는걸로 해보자!
+        const currentBlock = getSelectedBlock(editorState);
         if (start === 0) {
-          if (contentLength === 0) {
-            setBackSpace(true); //BackSpace로 이동할 때에는 위의 Card의 맨 끝으로 가야하기 위해서 선언한 State입니다. 위의 Card렌더링시에 BackSpace가 True이면 커서를 맨 끝으로 설정해 준 후에,
-            deleteCurrentCardFromTree(uuid);
-          }
-          else if (anchorOffSet != 0){
-            // console.log('anchor')
-            return
-          }
-          //카드에 들어있는 내용이 있다면, 위의 줄과 Merge해줘야 합니다.
+          //현재 editorState가 list 타입이라면?
+          if (isList(currentBlock)){
+            let depth = currentBlock.getDepth();
+            if (depth > 0){
+              if (currentBlock.getType() === 'bullet-list-item'){
+                //블록타입을 변경하게 되면, Depth가 0이 되게 됨
+                changeBlockType(editorState, 'tab-list-item');
+              }else{
+                decreaseBlockDepth(currentBlock, editorState);
+              }
+            }
+            //depth == 0 일때,
+            else{
+              removeBlockType(editorState)
+            }
+          }//리스트 타입이 아니면
           else{
-            setBackSpace(true);
-            setMergePending(mergeBlock);
-            deleteCurrentCardFromTree(uuid);
+            if (contentLength === 0) {
+              setBackSpace(true); //BackSpace로 이동할 때에는 위의 Card의 맨 끝으로 가야하기 위해서 선언한 State입니다. 위의 Card렌더링시에 BackSpace가 True이면 커서를 맨 끝으로 설정해 준 후에,
+              deleteCurrentCardFromTree(uuid);
+            }
+            else if (anchorOffSet != 0){
+              // console.log('anchor')
+              return
+            }
+            //카드에 들어있는 내용이 있다면, 위의 줄과 Merge해줘야 합니다.
+            else{
+              setBackSpace(true);
+              setMergePending(mergeBlock);
+              deleteCurrentCardFromTree(uuid);
+            }
           }
         }
       }
@@ -390,7 +443,6 @@ const Card = ({
       //탭을 눌렀을 때 -> 탭만 vs 쉬프트_탭
       if (evt.key === "Tab"){
         evt.preventDefault();
-
         if (evt.shiftKey){
           handleShiftTab(evt);
           console.log("handleShiftTab")
@@ -433,45 +485,109 @@ const Card = ({
         const contentState = editorState.getCurrentContent();
         const focusPosition = editorState.getSelection().getFocusOffset();
         const contentLength = contentState.getPlainText().length;
-        if(focusPosition == contentLength){
-          console.log("newCard!!!!!!")
-          const firstBlock = contentState.getFirstBlock();
-          const modifiedContentState = ContentState.createFromBlockArray([firstBlock]);
-          const modifiedEditorState = EditorState.createWithContent(modifiedContentState);
-          setEditorState(modifiedEditorState);
-          setCardCreated(true);
-          newCard();
-          // setEditorState(EditorState.undo(editorState));
+        
+        const currentBlock = getSelectedBlock(editorState);
+        //현재 카드가 Bullet 리스트일 경우 -> 구글 닥스를 따라간다
+        //tab-list의 경우에는 그냥 엔터하면 타입이 존재하지 않는 새로운 줄
+        //bullet-list 중, 컨텐츠가 없으면 그냥 타입 삭제 & 컨텐츠가 존재하면 다음줄에 동일한 카드타입 객체 생성
+        if (isBulletList(currentBlock)){
+          if (contentLength > 0){
+            console.log(contentLength, focusPosition)
+            //커서가 맨 뒤에 있을 경우, 카드타입과 depth만 동일하게 해주면 됨
+            if (focusPosition === contentLength){
+              //기존에 해주던 작업
+              console.log("In NEWWW CARD!")
+              const firstBlock = contentState.getFirstBlock();
+              const modifiedContentState = ContentState.createFromBlockArray([firstBlock]);
+              const modifiedEditorState = EditorState.createWithContent(modifiedContentState);
+              setEditorState(modifiedEditorState);
+              // setCardCreated(true); 
+              //새로운 카드
+              const newBlock = firstBlock.set('text','');
+              const newContentState = ContentState.createFromBlockArray([newBlock]);
+              const newEditorState = EditorState.createWithContent(newContentState);
+              console.log(newEditorState.getCurrentContent().getFirstBlock());
+              newCard(newEditorState);
+            }
+            //커서가 컨텐츠 중간에 있을 경우, 카드타입과 depth를 동일하게 해주고 커서 뒤에 있는 컨텐츠까지 추가해줘야 함!
+            else{
+              const selectionState = editorState.getSelection();
+              const splitedBlocks = Modifier.splitBlock(contentState, selectionState);
+              const modifiedContentState = ContentState.createFromBlockArray([splitedBlocks.getFirstBlock()]);
+              const modifiedEditorState = EditorState.createWithContent(modifiedContentState);
+              setEditorState(modifiedEditorState);
+              console.log(splitedBlocks.getLastBlock());
+              const newContentState = ContentState.createFromBlockArray([splitedBlocks.getLastBlock()]);
+              const newEditorState = EditorState.createWithContent(newContentState);
+              console.log(newEditorState.getCurrentContent().getFirstBlock());
+              newCard(newEditorState);
+            }
+          }
+          //카드에 컨텐츠가 존재하지 않을 경우?
+          else{
+            evt.preventDefault();
+            removeBlockType(editorState);
+          }
         }
+        //카드타입이 리스트가 아닐경우는 원래대로~
         else{
-          setEditorState(EditorState.undo(editorState));
-          const selectionState = editorState.getSelection();
-          const splitedBlocks = Modifier.splitBlock(contentState, selectionState);
-          const modifiedContentState = ContentState.createFromBlockArray([splitedBlocks.getFirstBlock()]);
-          const modifiedEditorState = EditorState.createWithContent(modifiedContentState);
-          setEditorState(modifiedEditorState);
-          const newContentState = ContentState.createFromBlockArray([splitedBlocks.getLastBlock()]);
-          const newEditorState = EditorState.createWithContent(newContentState);
-          newCard(newEditorState);
+          if(focusPosition == contentLength){
+            console.log("blank newCard!!!!!!")
+            //prevent Default가 작동안해서, 임의로 두줄 생기는 것을 다시 한줄로 setEditorState 해주는 행위
+            const firstBlock = contentState.getFirstBlock();
+            const modifiedContentState = ContentState.createFromBlockArray([firstBlock]);
+            const modifiedEditorState = EditorState.createWithContent(modifiedContentState);
+            setEditorState(modifiedEditorState);
+            //새로운 카드 생성
+            setCardCreated(true);
+            newCard();
+            // setEditorState(EditorState.undo(editorState));
+          }
+          else{
+            // setEditorState(EditorState.undo(editorState));
+            const selectionState = editorState.getSelection();
+            const splitedBlocks = Modifier.splitBlock(contentState, selectionState);
+            const modifiedContentState = ContentState.createFromBlockArray([splitedBlocks.getFirstBlock()]);
+            const modifiedEditorState = EditorState.createWithContent(modifiedContentState);
+            setEditorState(modifiedEditorState);
+            const newContentState = ContentState.createFromBlockArray([splitedBlocks.getLastBlock()]);
+            const newEditorState = EditorState.createWithContent(newContentState);
+            newCard(newEditorState);
+          }
         }
-        // setEditorState(editorStateHistory[1]);
-        //커서 위치도 옯겨가야함!
+      }
+      if (hasCommandModifier(evt) && evt.shiftKey && evt.key == 'h'){
+        evt.preventDefault();
+
+        onChange(RichUtils.toggleInlineStyle(editorState, 'HIGHLIGHT'));
+        console.log("highlight")
+        return 'highlight'
+      }
+      if (hasCommandModifier(evt) && evt.key === 'b'){
+        onChange(RichUtils.toggleInlineStyle(editorState, 'BOLD'));
+        return 'bold'
       }
     }
 
+    const styleMap = {
+      'HIGHLIGHT': {
+        'backgroundColor': '#faed27',
+      },
+      'RED': {
+        color:'red',
+      }
+    }
     //새로운, 빈, 카드 데이터 생성
     const newCard = async (newCardEditorState = EditorState.createEmpty()) => {
-      // const newCardEditorState = EditorState.createEmpty();
       const newCardContentState = newCardEditorState.getCurrentContent();
       const newCardRaw = convertToRaw(newCardContentState);
       const newCardRawToString = JSON.stringify(newCardRaw);
+      console.log(newCardRawToString);
       const response = await ApiHelper(`${DEFAULT_URL}/card/create`, null, 'POST', {
         content: newCardRawToString, //엔터를 누르는 곳 뒤에 텍스트가 있다면, 
         created: time,
         updater: userId,
       })
-      // console.log("new Card");
-      // console.log(response)
       //새로운 카드의 id 로 uuid 업데이트
       createdNewCardAtTree(response._id);
       setCurrentCard(response._id);
@@ -543,6 +659,7 @@ const Card = ({
         characterList: originalBlock.getCharacterList(),
         depth: originalBlock.getDepth(),
         data: originalBlock.getData(),
+        type: originalBlock.getType()
       });
       return newBlock
     }
@@ -557,17 +674,17 @@ const Card = ({
     // }
 
 
-    return (<>
-        {/* <div className = "cards" style = {{width: indentCnt * 30}} ></div> */}
+    return (
         <div className = "cards" onKeyDown={onKeyDown}>
           <Editor
           editorState={editorState}
           onChange={onChange}
           ref={cursorRef}
           blockStyleFn={myBlockStyleFn}
+          customStyleMap={styleMap}
         />
         </div>
-    </>);
+    );
   }
   export default Card;
   

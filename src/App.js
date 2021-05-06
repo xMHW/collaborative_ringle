@@ -191,34 +191,40 @@ const App = () => {
 
 
   return <>
-  <div> Bold/Highlight </div>
-  <div style = {{padding:16, width:1100, backgroundColor: 'white', maxWidth:1100, borderRadius:8, display: 'inline-block'}}>
-    {
-      tree.map((id) => <Card key={id}
-      // initContentState = {obj.initContentState}
-      uuid = {id}
-      currentCard = {currentCard}
-      findPrevCard = {findPrevCard}
-      findNextCard = {findNextCard}
-      createdNewCardAtTree = {createdCard}
-      setCurrentCard = {setCurrentCard}
-      deleteCurrentCardFromTree = {deleteCurrentCardFromTree}
-      setBackSpace = {setBackSpace}
-      backSpace = {backSpace}
-      mergePending = {mergePending}
-      setMergePending = {setMergePending}
-      cardCreated = {cardCreated}
-      setCardCreated = {setCardCreated}
-      goUp = {goingUp}
-      setGoUp = {setGoingUp}
-      socket = {socket}
-      setSocket = {setSocket}
-    />)
-    }
-    </div>
-    
-    
-    </>
+  <div className="page">
+
+      <div className ="toolBox">
+        highlight = Command/control + h  <br/>
+        bold = command/control + b <br/>
+        bullet = '-' + space '&' tab/shift+tab
+           
+      </div>
+      <div className="document">
+        {
+          tree.map((id) => <Card key={id}
+          // initContentState = {obj.initContentState}
+          uuid = {id}
+          currentCard = {currentCard}
+          findPrevCard = {findPrevCard}
+          findNextCard = {findNextCard}
+          createdNewCardAtTree = {createdCard}
+          setCurrentCard = {setCurrentCard}
+          deleteCurrentCardFromTree = {deleteCurrentCardFromTree}
+          setBackSpace = {setBackSpace}
+          backSpace = {backSpace}
+          mergePending = {mergePending}
+          setMergePending = {setMergePending}
+          cardCreated = {cardCreated}
+          setCardCreated = {setCardCreated}
+          goUp = {goingUp}
+          setGoUp = {setGoingUp}
+          socket = {socket}
+          setSocket = {setSocket}
+        />)
+        }
+        </div>
+  </div>
+  </>
 }
 
 export default App;
