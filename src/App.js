@@ -7,8 +7,10 @@ import { io } from 'socket.io-client';
 import useDidMountEffect from './modules/usedidmounteffect';
 
 
-const SOCKET_URL = "http://54.180.147.138:5000"
-const DEFAULT_URL = "http://54.180.147.138"
+const SOCKET_URL = "http://localhost:8082:5000"
+const DEFAULT_URL = "http://localhost:8082"
+// "http://localhost:3000"
+
 // const SOCKET_URL = "http://54.180.147.138:5000"
 
 const App = () => {
@@ -108,7 +110,7 @@ const App = () => {
     validateTree(tree);
     const response = await ApiHelper(`${DEFAULT_URL}/tree/update`, null, 'POST', {
       page: page,
-      cards: ["608b3f2157e25818a1d3ff16","608b3f3557e25818a1d3ff17"],
+      cards: tree,
     })
     // console.log("updating tree")
     // console.log(response)

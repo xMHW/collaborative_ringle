@@ -27,7 +27,8 @@ const Card = ({
     const [oldOffsets, setOldOffsets] = useState({AnchorOffset: 0, FocusOffset: 0});
     const cursorRef = useRef();
 
-    const DEFAULT_URL = "http://54.180.147.138"
+    const DEFAULT_URL = "http://localhost:8082"
+    // "http://localhost:3000"
 
     //socket loading!
     

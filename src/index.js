@@ -2,7 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
 import App from './App';
-import Comp from './Comp';
+// import Comp from './Comp';
 
 // import Card from './components/Card2'
 import reportWebVitals from './reportWebVitals';
