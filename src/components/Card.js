@@ -10,7 +10,7 @@ const Card = ({
   uuid, currentCard, findPrevCard, findNextCard, createdNewCardAtTree,
    setCurrentCard, deleteCurrentCardFromTree, setBackSpace, backSpace,
    mergePending, setMergePending, cardCreated, setCardCreated, goUp, setGoUp,
-   socket, setSocket, listCardCreated, setListCardCreated
+   socket, setSocket,
 }) => {
     const [editorState, setEditorState] = useState(() => 
         EditorState.createEmpty(),
@@ -24,34 +24,66 @@ const Card = ({
     const [hasEnded, setHasEnded] = useState(false); // 커서의 위치가 끝이면, 변경됨을 알려줌
     const [textDifference, setTextDifference] = useState(false);
     const [cursorDifference, setCursorDifference] = useState(false);
-    const [listCreated, setListCreated] = useState(false);
+    const [oldOffsets, setOldOffsets] = useState({AnchorOffset: 0, FocusOffset: 0});
     const cursorRef = useRef();
-    const DEFAULT_URL = "http://localhost:8082"
+
+    const DEFAULT_URL = "http://54.180.147.138"
 
     //socket loading!
     
-    const onChange = (editState) => {
-      // console.log(checkTextDifference(editorState, editState));
-      // if(checkTextDifference(editorState, editState)){
-      //   setTextDifference(true);
-      // }
-      // if(checkCursorDifference(editorState, editState)){
-      //   setCursorDifference(true);
-      // }
-      console.log(editorState.getCurrentContent().getFirstBlock(), uuid);
 
+    const onChange = (editState) => {
+      console.log(checkTextDifference(editorState, editState));
+      const oldSelectionState = editorState.getSelection();
+      const oldAnchorOffset = oldSelectionState.getAnchorOffset();
+      const oldFocusOffset = oldSelectionState.getFocusOffset();
+      setOldOffsets({AnchorOffset: oldAnchorOffset, FocusOffset: oldFocusOffset});
+      if(checkTextDifference(editorState, editState)){
+        setTextDifference(true);
+      }
+      if(checkCursorDifference(editorState, editState)){
+        setCursorDifference(true);
+      }
       setEditorState(editState);
       // updateData(uuid);
       setCurrentCard(uuid);
     }
-
+    //소켓을 통하여 변화가 있을 경우에 보내주는 것 -> 보낼 내용 contentState Raw화 한것, 변경한 userid, 변경한 object id, 변화 이전 업데이터의 커서 오프셋, 오프셋 변화량(나중 오프셋 - 이전 오프셋)
     useEffect(() => {
       if (socket == null || editorState == null || textDifference == false) return;
       const contentState = editorState.getCurrentContent();
       const rawContentState = convertToRaw(contentState);
-      socket.emit("send-changes", {delta: rawContentState, id: userId, objectId: uuid});
+      const selectionState = editorState.getSelection();
+      const AnchorOffset = selectionState.getAnchorOffset();
+      const FocusOffset = selectionState.getFocusOffset();
+      const AnchorDelta = AnchorOffset - oldOffsets["AnchorOffset"];
+      const FocusDelta = FocusOffset - oldOffsets["FocusOffset"];
+      const offsetDelta = {AnchorDelta: AnchorDelta, FocusDelta: FocusDelta};
+      socket.emit("send-changes", {delta: rawContentState, id: userId, objectId: uuid, oldOffsets: oldOffsets, offsetDelta: offsetDelta});
       setTextDifference(false);
     }, [socket, editorState, textDifference]);
+
+    const checkOffsetDelta = (myOffset, targetOffset, targetDelta) => {
+      if(myOffset<=targetOffset) return myOffset;
+      return myOffset + targetDelta;
+    }
+
+    const checkOffsetBetween = (myOffset, targetAnchorOffset, targetFocusOffset) => {
+      if(targetAnchorOffset<myOffset && myOffset<targetFocusOffset) return targetAnchorOffset;
+      if(targetFocusOffset<myOffset && myOffset<targetAnchorOffset) return targetFocusOffset;
+      return null;
+    }
+
+    const changeSelectionState = (changedOffset, checkBetweenOffset, selectionState) => {
+      if(checkBetweenOffset) {
+        const changedSelectionState = selectionState.set('focusOffset', checkBetweenOffset);
+        const changedSelectionStateWithAnchor = changedSelectionState.set('anchorOffset', checkBetweenOffset);
+        return changedSelectionStateWithAnchor;
+      }
+      const changedSelectionState = selectionState.set('focusOffset', changedOffset);
+      const changedSelectionStateWithAnchor = changedSelectionState.set('anchorOffset', changedOffset);
+      return changedSelectionStateWithAnchor;
+    }
 
     useEffect(() => {
       if (socket == null || editorState == null) return;
@@ -59,9 +91,17 @@ const Card = ({
         if(deltamap["id"] == userId) return;
         if(deltamap["objectId"] != uuid) return;
         const receivedContentState = convertFromRaw(deltamap["delta"]);
+        const currentSelectionState = editorState.getSelection();
+        const currentAnchorOffset = currentSelectionState.getAnchorOffset(); // 일단 focus, anchor가 동일하다 가정(블럭 선택 고려 x)
+        // const currentFocusOffset = currentSelectionState.getFocusOffset();
+        const changedAnchorOffset = checkOffsetDelta(currentAnchorOffset, deltamap["oldOffsets"]["AnchorOffset"], deltamap["offsetDelta"]["AnchorDelta"]);
+        // const changedFocusOffset = checkOffsetDelta(currentFocusOffset, deltamap["oldOffsets"]["FocusOffset"], deltamap["offsetDelta"]["FocusDelta"]);
+        const checkBetweenOffset = checkOffsetBetween(currentAnchorOffset, deltamap["oldOffsets"]["AnchorOffset"], deltamap["oldOffsets"]["FocusOffset"]);
+        const changedSelectionState = changeSelectionState(changedAnchorOffset, checkBetweenOffset, currentSelectionState);
         const receivedEditorState = EditorState.set(editorState, {currentContent: receivedContentState});
+        const receivedEditorStateWithSelection = EditorState.acceptSelection(receivedEditorState, changedSelectionState);
         // const receivedEditorState = EditorState.createWithContent(receivedContentState);
-        setEditorState(receivedEditorState);
+        setEditorState(receivedEditorStateWithSelection);
       };
       socket.on("receive-changes", handler);
 
@@ -85,7 +125,6 @@ const Card = ({
       var now = today.getHours() + ':' + today.getMinutes() + ':' + today.getSeconds();
       setTime(now);
       updateData(uuid);
-      console.log(editorState.getCurrentContent().getFirstBlock().getType(), uuid);
     }, [editorState]);
     
     //text difference check! --> check in every onChange(), 만약에 텍스트 변화(스타일)가 있다면, True를 리턴해줄 것임!
@@ -120,29 +159,19 @@ const Card = ({
           cursorRef.current.focus();
           // console.log(editorState.getSelection().getHasFocus());
           if(cardCreated) {
-            console.log("Inside cardCreated"); 
-            // setEditorState(EditorState.createEmpty());
-            // getData(uuid);
-            // setEditorState(EditorState.moveFocusToEnd(editorState));
-            // const contentState = editorState.getCurrentContent();
-            // const selectionState = editorState.getSelection();
-            // const focusKey = selectionState.getFocusKey();
-            // const length = contentState.getPlainText().length;
-            // const newCardRaw = convertToRaw(contentState);
-            // const newEditorState = EditorState.createWithContent(convertFromRaw(newCardRaw))
-            // const newSelectionState = selectionState.merge({
-            //   focusKey: focusKey,
-            //   focusOffset: length,
-            //   anchorOffset: length,
-            //   hasFocus: true,
-            // })
-            // setEditorState(EditorState.acceptSelection(newEditorState, newSelectionState));
-            
+            const contentState = editorState.getCurrentContent();
+            const selectionState = editorState.getSelection();
+            const length = contentState.getPlainText().length;
+            const mergedSelectionState = selectionState.merge({
+              focusOffset: length,
+              anchorOffset: length,
+              hasFocus: true,
+            });
+            setEditorState(EditorState.acceptSelection(editorState, mergedSelectionState));
             setCardCreated(false);
           }
           if(backSpace){
             setEditorState(EditorState.moveFocusToEnd(editorState));
-            console.log("backSpace")
             if(mergePending){
               const contentState = editorState.getCurrentContent();
               const selectionState = editorState.getSelection();
@@ -172,26 +201,10 @@ const Card = ({
 
 
     useEffect(() => {
-      if(cardCreated){
-        return;
-      }
+      if(cardCreated) return;
       getData(uuid);
     }, [])
-    const getNewCardData = async (uuid) => {
-      const response = await ApiHelper(`${DEFAULT_URL}/card/find`, null, 'POST',{
-        _id: uuid,
-      })
-      setCard(response)
-      if (response){
-        // console.log(response.content)
-        const parsedContent = JSON.parse(response.content)
-        const defaultEditorState = EditorState.createWithContent(convertFromRaw(parsedContent))
-        console.log(defaultEditorState)
-        return defaultEditorState
-      }else{
-        // console.log("No Response so default empty editor state returned")
-      }
-    }
+  
     const getData = async (uuid) => {
       const response = await ApiHelper(`${DEFAULT_URL}/card/find`, null, 'POST',{
         _id: uuid,
@@ -203,7 +216,6 @@ const Card = ({
         // console.log(response.content)
         const parsedContent = JSON.parse(response.content)
         const defaultEditorState = EditorState.createWithContent(convertFromRaw(parsedContent))
-        console.log(defaultEditorState);
         setEditorState(defaultEditorState)  
       }else{
         // console.log("No Response so default empty editor state returned")
@@ -231,7 +243,6 @@ const Card = ({
         findNextCard(uuid);
       }
     }
-
     const handleShiftTab = (evt) => {
       let currentEditorState = editorState;
       let currentBlock = getSelectedBlock(currentEditorState);
@@ -363,7 +374,6 @@ const Card = ({
         }
       }
     }
-
     //키를 누를때 반응하는 함수
     const onKeyDown = (evt) => {
       //백스페이스를 눌렀을 때
@@ -577,17 +587,20 @@ const Card = ({
         color:'red',
       }
     }
+
     //새로운, 빈, 카드 데이터 생성
     const newCard = async (newCardEditorState = EditorState.createEmpty()) => {
+      // const newCardEditorState = EditorState.createEmpty();
       const newCardContentState = newCardEditorState.getCurrentContent();
       const newCardRaw = convertToRaw(newCardContentState);
       const newCardRawToString = JSON.stringify(newCardRaw);
-      console.log(newCardRawToString);
       const response = await ApiHelper(`${DEFAULT_URL}/card/create`, null, 'POST', {
         content: newCardRawToString, //엔터를 누르는 곳 뒤에 텍스트가 있다면, 
         created: time,
         updater: userId,
       })
+      // console.log("new Card");
+      // console.log(response)
       //새로운 카드의 id 로 uuid 업데이트
       createdNewCardAtTree(response._id);
       setCurrentCard(response._id);
@@ -628,8 +641,6 @@ const Card = ({
             updater: userId,
           }
         )
-        // console.log("Updating");
-        // console.log(time);
         if (response){
           // console.log(response)
         }

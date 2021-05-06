@@ -1,20 +1,20 @@
 import React, {useEffect, useRef, useState} from 'react';
 import './App.css';
-// import {useParams} from "react-router-dom";
+import {useParams} from "react-router-dom";
 import {ApiHelper} from './modules/ApiHelper.js';
 import Card from './components/Card.js';
-import {useParams} from "react-router-dom";
 import { io } from 'socket.io-client';
 import useDidMountEffect from './modules/usedidmounteffect';
 
 
-const SOCKET_URL = "http://localhost:8082:5000"
-const DEFAULT_URL = "http://localhost:8082"
+const SOCKET_URL = "http://54.180.147.138:5000"
+const DEFAULT_URL = "http://54.180.147.138"
 // const SOCKET_URL = "http://54.180.147.138:5000"
 
 const App = () => {
   const [tree, setTree] = useState([]);
   const [currentCard, setCurrentCard] = useState(null);
+  const [load, setLoad] = useState(false);
   const [locRefs, setlocRefs] = useState([]);
   const {userId} = useParams();
   const [backSpace, setBackSpace] = useState(false);
@@ -108,7 +108,7 @@ const App = () => {
     validateTree(tree);
     const response = await ApiHelper(`${DEFAULT_URL}/tree/update`, null, 'POST', {
       page: page,
-      cards: tree,
+      cards: ["608b3f2157e25818a1d3ff16","608b3f3557e25818a1d3ff17"],
     })
     // console.log("updating tree")
     // console.log(response)
@@ -116,7 +116,7 @@ const App = () => {
 
   // console.log(tree)
 
-  const findPrevCard = (uuid, actionType) => {
+  const findPrevCard = (uuid) => {
     const index = tree.indexOf(uuid)
     if (index === -1){
       return
@@ -192,39 +192,37 @@ const App = () => {
 
   return <>
   <div className="page">
-
-      <div className ="toolBox">
-        highlight = Command/control + h  <br/>
-        bold = command/control + b <br/>
-        bullet = '-' + space '&' tab/shift+tab
-           
+    <div className ="toolBox">
+          highlight = Command/control + h  <br/>
+          bold = command/control + b <br/>
+          bullet = '-' + space '&' tab/shift+tab
+    </div>
+    <div className="document">
+      {
+        tree.map((id) => <Card key={id}
+        // initContentState = {obj.initContentState}
+        uuid = {id}
+        currentCard = {currentCard}
+        findPrevCard = {findPrevCard}
+        findNextCard = {findNextCard}
+        createdNewCardAtTree = {createdCard}
+        setCurrentCard = {setCurrentCard}
+        deleteCurrentCardFromTree = {deleteCurrentCardFromTree}
+        setBackSpace = {setBackSpace}
+        backSpace = {backSpace}
+        mergePending = {mergePending}
+        setMergePending = {setMergePending}
+        cardCreated = {cardCreated}
+        setCardCreated = {setCardCreated}
+        goUp = {goingUp}
+        setGoUp = {setGoingUp}
+        socket = {socket}
+        setSocket = {setSocket}
+      />)
+      }
       </div>
-      <div className="document">
-        {
-          tree.map((id) => <Card key={id}
-          // initContentState = {obj.initContentState}
-          uuid = {id}
-          currentCard = {currentCard}
-          findPrevCard = {findPrevCard}
-          findNextCard = {findNextCard}
-          createdNewCardAtTree = {createdCard}
-          setCurrentCard = {setCurrentCard}
-          deleteCurrentCardFromTree = {deleteCurrentCardFromTree}
-          setBackSpace = {setBackSpace}
-          backSpace = {backSpace}
-          mergePending = {mergePending}
-          setMergePending = {setMergePending}
-          cardCreated = {cardCreated}
-          setCardCreated = {setCardCreated}
-          goUp = {goingUp}
-          setGoUp = {setGoingUp}
-          socket = {socket}
-          setSocket = {setSocket}
-        />)
-        }
-        </div>
-  </div>
-  </>
+    </div>
+    </>
 }
 
 export default App;
@@ -233,6 +231,7 @@ export default App;
 // findNextCard={findNextCard}
 // updateId={updateId}
 // updateData={updateData}
+// initContentState = {obj.initContentState}
 
 // {/* <div onClick = {createTree}>TreeCreate</div> */}
 /* <div className = "superFancyBlockQuote" ref = {thisRef} contentEditable = {true} placeholder = "write">
