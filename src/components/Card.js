@@ -467,26 +467,48 @@ const Card = ({
         console.log(evt.keyCode)
         const contentState = editorState.getCurrentContent();
         const something = contentState.getFirstBlock().text.split("")[0];
+        const nextSomething =contentState.getFirstBlock().text.split("")[1];
         //Bullet
         if (something === "-"){
-          evt.preventDefault();
-          //Block Type 확인
-          let listEditorState = RichUtils.toggleBlockType(editorState, 'bullet-list-item')
-          let listContentState = listEditorState.getCurrentContent();
-          let listSelectionState = listEditorState.getSelection();
-          const newContentState = Modifier.replaceText(
-            listContentState,
-            listSelectionState.merge({
-              anchorOffset: 0,
-              focusOffset: 1
-            }),
-            ""
-          );
-          setEditorState(EditorState.push(
-            listEditorState,
-            newContentState,
-            'replace-text'
-          ));
+          if (nextSomething === ">"){
+            evt.preventDefault();
+            console.log("Arrow")
+            const contentState = editorState.getCurrentContent();
+            const selectionState = editorState.getSelection();
+            const newContentState = Modifier.replaceText(
+              contentState,
+              selectionState.merge({
+                anchorOffset: 0,
+                focusOffset: 2
+              }),
+              "→"
+            );
+            setEditorState(EditorState.push(
+              editorState,
+              newContentState,
+              'replace-text'
+            ));
+
+          }else{
+            evt.preventDefault();
+            //Block Type 확인
+            let listEditorState = RichUtils.toggleBlockType(editorState, 'bullet-list-item')
+            let listContentState = listEditorState.getCurrentContent();
+            let listSelectionState = listEditorState.getSelection();
+            const newContentState = Modifier.replaceText(
+              listContentState,
+              listSelectionState.merge({
+                anchorOffset: 0,
+                focusOffset: 1
+              }),
+              ""
+            );
+            setEditorState(EditorState.push(
+              listEditorState,
+              newContentState,
+              'replace-text'
+            ));
+          }
         }
       }
       //엔터를 눌렀을 때
