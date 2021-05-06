@@ -5,16 +5,18 @@ import {ApiHelper} from './modules/ApiHelper.js';
 import Card from './components/Card.js';
 import { io } from 'socket.io-client';
 import useDidMountEffect from './modules/usedidmounteffect';
+import { convertFromRaw } from 'draft-js';
 
 
-const SOCKET_URL = "http://54.180.147.138:5000"
-const DEFAULT_URL = "http://54.180.147.138"
+const SOCKET_URL = "http://localhost:8082:5000"
+const DEFAULT_URL = "http://localhost:8082"
 // "http://localhost:3000"
 
 // const SOCKET_URL = "http://54.180.147.138:5000"
 
 const App = () => {
   const [tree, setTree] = useState([]);
+  const [initCards, setInitCards] = useState({});
   const [currentCard, setCurrentCard] = useState(null);
   const [load, setLoad] = useState(false);
   const [locRefs, setlocRefs] = useState([]);
@@ -26,8 +28,9 @@ const App = () => {
   const [socket, setSocket] = useState();
   const [treeDifference, setTreeDifference] = useState(false);
   const [treeCardCount, setTreeCardCount] = useState(0);
+  const [loaded, setLoaded] = useState(false);
 
-
+  //처음 렌더링 될 때,,,
   useEffect(() => {
     getTree();
   }, []);
@@ -71,7 +74,6 @@ const App = () => {
       refs: [],
     })
   }
-
   //아무런 정보가 없을 때, 트리/카드 하나 생성하도록?
   const createTree = async () => {
     const response = await ApiHelper(`${DEFAULT_URL}/tree/create`, null, 'POST', {
@@ -79,13 +81,33 @@ const App = () => {
       page: 0,
     })
   }
-
+  const getCards = async () => {
+    for (let i = 0; i < tree.length; i++){
+      const response = await ApiHelper(`${DEFAULT_URL}/card/find`, null, 'POST', {_id: tree[i]});
+      let parsedContent = JSON.parse(response.content);
+      let initContentState = convertFromRaw(parsedContent);
+      let uid = tree[i]
+      initCards.push({[uid]: initContentState});
+    }
+    setInitCards(initCards);
+  }
   //트리 데이터 서버를 통해 받아오기, tree데이터는 uuid만 어레이로 저장
   const getTree = async () => {
     const response = await ApiHelper(`${DEFAULT_URL}/tree/find/all`, null, 'GET', null)
-    // console.log(response)
-    setTree(response[0].cards)
+    console.log(response)
+    setTree(response[0].cards);
     // console.log(tree)
+    let _initCards = {}
+    for (let i = 0; i < response[0].cards.length; i++){
+      const response2 = await ApiHelper(`${DEFAULT_URL}/card/find`, null, 'POST', {_id: response[0].cards[i]});
+      let parsedContent = JSON.parse(response2.content);
+      let initContentState = convertFromRaw(parsedContent);
+      let uid = response[0].cards[i]
+      _initCards[uid] = initContentState;
+    }
+    console.log(_initCards);
+    setInitCards(_initCards);
+    setLoaded(true);
   }
 
   const validateTree = async (tree) => {
@@ -129,13 +151,6 @@ const App = () => {
     //본 카드 위에있는 카드의 uuid가져오기
     setCurrentCard(tree[index-1]);
     setGoingUp(true);
-
-    // if(actionType === "delete"){
-    //   const copied = [...tree]
-    //   copied.splice(index, 1);
-    //   setTree(copied);
-    //   //tree 업데이트 됬음을 알려서 -> !!!!!!!!!!!!!!!!!!
-    // }
   }
 
   const findNextCard = (uuid) => {
@@ -155,11 +170,14 @@ const App = () => {
 
   const createdCard = (createdId) => {
     const index = tree.indexOf(currentCard);
+    console.log(currentCard)
     let newTree = []
+    //맨 처음에 트리를 만들거나, 오류가 일어날때 발생
     if(index === -1){
       newTree = [
         ...tree, createdId
       ]
+      console.log("Please check possible ERROR")
       setTree(newTree)
     }else{
       const copiedTree = [...tree]
@@ -190,7 +208,9 @@ const App = () => {
   }
 
 
-
+  if (!loaded){
+    return <> Loading...</>
+  }
 
   return <>
   <div className="page">
@@ -202,7 +222,7 @@ const App = () => {
     <div className="document">
       {
         tree.map((id) => <Card key={id}
-        // initContentState = {obj.initContentState}
+        initContentState = {initCards[id]}
         uuid = {id}
         currentCard = {currentCard}
         findPrevCard = {findPrevCard}

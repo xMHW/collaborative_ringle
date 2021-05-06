@@ -11,10 +11,8 @@ const Card = ({
    setCurrentCard, deleteCurrentCardFromTree, setBackSpace, backSpace,
    mergePending, setMergePending, cardCreated, setCardCreated, goUp, setGoUp,
    socket, setSocket,
+   initContentState
 }) => {
-    const [editorState, setEditorState] = useState(() => 
-        EditorState.createEmpty(),
-    );
     // const [editorStateHistory, setEditorStateHistory] = useState([]);
     var today = new Date();
     const [time, setTime] = useState(); // created에 들어갈 시간 데이터
@@ -26,8 +24,19 @@ const Card = ({
     const [cursorDifference, setCursorDifference] = useState(false);
     const [oldOffsets, setOldOffsets] = useState({AnchorOffset: 0, FocusOffset: 0});
     const cursorRef = useRef();
+    const [loaded, setLoaded] = useState(false);
+    
 
-    const DEFAULT_URL = "http://54.180.147.138"
+    let defaultEditorState
+    if(initContentState){
+      defaultEditorState = EditorState.createWithContent(initContentState);
+    }else{
+      defaultEditorState = EditorState.createEmpty()
+    }
+    const [editorState, setEditorState] = useState(defaultEditorState)
+
+
+    const DEFAULT_URL = "http://localhost:8082"
     // "http://localhost:3000"
 
     //socket loading!
@@ -46,8 +55,6 @@ const Card = ({
         setCursorDifference(true);
       }
       setEditorState(editState);
-      // updateData(uuid);
-      setCurrentCard(uuid);
     }
     //소켓을 통하여 변화가 있을 경우에 보내주는 것 -> 보낼 내용 contentState Raw화 한것, 변경한 userid, 변경한 object id, 변화 이전 업데이터의 커서 오프셋, 오프셋 변화량(나중 오프셋 - 이전 오프셋)
     useEffect(() => {
@@ -155,9 +162,15 @@ const Card = ({
     }
     
     useDidMountEffect(() => {
-      if(currentCard == uuid) {
-        if(cursorRef.current){
+      console.log("In HERE !! ")
+      if(currentCard === uuid) {
+        let t = 0;
+        if (!cursorRef.current){
+          t = 100;
+        }
+        setTimeout(() => {if(cursorRef.current){
           cursorRef.current.focus();
+          console.log("More inside")
           // console.log(editorState.getSelection().getHasFocus());
           if(cardCreated) {
             const contentState = editorState.getCurrentContent();
@@ -172,7 +185,6 @@ const Card = ({
             setCardCreated(false);
           }
           if(backSpace){
-            setEditorState(EditorState.moveFocusToEnd(editorState));
             if(mergePending){
               const contentState = editorState.getCurrentContent();
               const selectionState = editorState.getSelection();
@@ -189,22 +201,47 @@ const Card = ({
               })
               setEditorState(EditorState.acceptSelection(mergedEditorState2, mergedSelectionState));
               setMergePending(null);
+            }else{
+              setEditorState(EditorState.moveFocusToEnd(editorState));
             }
             setBackSpace(false);
           }
-          if(goUp){
-            setEditorState(EditorState.moveFocusToEnd(editorState));
-            setGoUp(false);
-          }
-        }
+          // if(goUp){
+          //   setEditorState(EditorState.moveFocusToEnd(editorState));
+          //   setGoUp(false);
+          // }
+        }}, t);
+        return
       }
     },[currentCard])
 
+    useDidMountEffect(() => {
+      if(goUp){
+        setEditorState(EditorState.moveFocusToEnd(editorState));
+        setGoUp(false);  
+      }
+
+    }, [goUp])
 
     useEffect(() => {
-      if(cardCreated) return;
-      getData(uuid);
+      if(!initContentState){
+        getData(uuid);
+      }
+
+      //cursorRef 
+
+      //onChange
+
+      //카드가 생성될때만 부르는 걸로
     }, [])
+
+    const focusEditor = () => {
+      // alert('s');
+      if(cursorRef.current){
+        cursorRef.current.focus()
+        setCurrentCard(uuid);
+      }
+    }
   
     const getData = async (uuid) => {
       const response = await ApiHelper(`${DEFAULT_URL}/card/find`, null, 'POST',{
@@ -221,6 +258,9 @@ const Card = ({
       }else{
         // console.log("No Response so default empty editor state returned")
       }
+      setCurrentCard(uuid);
+      console.log("current Card act")
+      setLoaded(true);
     }
     //위의 카드로 올라갈때의 설정
     const goingUp = () => {
@@ -348,6 +388,7 @@ const Card = ({
     function myBlockStyleFn(){
       const type = editorState.getCurrentContent().getFirstBlock().getType();
       const depth = editorState.getCurrentContent().getFirstBlock().getDepth();
+
       if (type === 'tab-list-item'){
         if (depth === 0){
           return 'tabList0'
@@ -374,6 +415,7 @@ const Card = ({
           return 'bulletList4'
         }
       }
+      
     }
     //키를 누를때 반응하는 함수
     const onKeyDown = (evt) => {
@@ -564,7 +606,7 @@ const Card = ({
         }
         //카드타입이 리스트가 아닐경우는 원래대로~
         else{
-          if(focusPosition == contentLength){
+          if(focusPosition === contentLength){
             console.log("blank newCard!!!!!!")
             //prevent Default가 작동안해서, 임의로 두줄 생기는 것을 다시 한줄로 setEditorState 해주는 행위
             const firstBlock = contentState.getFirstBlock();
@@ -572,7 +614,7 @@ const Card = ({
             const modifiedEditorState = EditorState.createWithContent(modifiedContentState);
             setEditorState(modifiedEditorState);
             //새로운 카드 생성
-            setCardCreated(true);
+            // setCardCreated(true);
             newCard();
             // setEditorState(EditorState.undo(editorState));
           }
@@ -622,11 +664,12 @@ const Card = ({
         created: time,
         updater: userId,
       })
-      // console.log("new Card");
-      // console.log(response)
+      console.log("new Card");
+      console.log(response)
       //새로운 카드의 id 로 uuid 업데이트
       createdNewCardAtTree(response._id);
-      setCurrentCard(response._id);
+      // setCurrentCard(response._id);
+      console.log("newCard", currentCard);
       // console.log(response._id)
     }
 
@@ -697,7 +740,6 @@ const Card = ({
       });
       return newBlock
     }
-
     // const selectionInitializedEditorState = () => {
     //   const newSelectionState = new SelectionState({
     //     hasFocus: true,
@@ -706,18 +748,21 @@ const Card = ({
     //   const initializedEditorState = EditorState.forceSelection(newEditorState, newSelectionState);
     //   return initializedEditorState;
     // }
-
-
+    // console.log(editorState.getCurrentContent().getFirstBlock().getType(), uuid)
+    // if (!loaded){
+    //   return <></> 
+    // }
     return (
-        <div className = "cards" onKeyDown={onKeyDown}>
-          <Editor
-          editorState={editorState}
-          onChange={onChange}
-          ref={cursorRef}
-          blockStyleFn={myBlockStyleFn}
-          customStyleMap={styleMap}
-        />
-        </div>
+      <div className = "cards" onKeyDown={onKeyDown} onClick={focusEditor}
+      >
+        <Editor
+        editorState={editorState}
+        onChange={onChange}
+        ref={cursorRef}
+        blockStyleFn={myBlockStyleFn}
+        customStyleMap={styleMap}
+      />
+      </div>
     );
   }
   export default Card;
